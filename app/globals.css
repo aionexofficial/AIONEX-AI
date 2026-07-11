@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --background: #02050b;
+  --foreground: #f4f8ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+::selection { background: #10b6ff; color: #02050b; }
+
+.stars,
+.stars::before,
+.stars::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(117, 214, 255, .95) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 78% 12%, rgba(255, 255, 255, .85) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 37% 72%, rgba(64, 186, 255, .7) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 88% 62%, rgba(255, 255, 255, .8) 0 .8px, transparent 1.7px),
+    radial-gradient(circle at 5% 88%, rgba(96, 205, 255, .7) 0 1px, transparent 1.8px);
+  background-size: 310px 330px, 470px 420px, 390px 460px, 510px 380px, 360px 430px;
+  animation: drift 22s linear infinite;
+  opacity: .8;
+}
+
+.stars::before { transform: scale(1.25); opacity: .42; animation-duration: 34s; }
+.stars::after { transform: scale(.8); opacity: .28; animation-duration: 16s; animation-direction: reverse; }
+
+@keyframes drift { to { background-position: 80px 280px, -130px 200px, 160px -140px, -100px -180px, 90px 150px; } }
+@keyframes float { 50% { transform: translateY(-10px); } }
+@keyframes pulse-ring { 50% { transform: scale(1.08); opacity: .35; } }
+@keyframes orbit { to { transform: rotate(360deg); } }
+
+.float { animation: float 5s ease-in-out infinite; }
+.pulse-ring { animation: pulse-ring 4s ease-in-out infinite; }
+.orbit { animation: orbit 26s linear infinite; }
+
+.glass-card {
+  border: 1px solid rgba(186, 230, 253, .12);
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, rgba(255,255,255,.075), rgba(255,255,255,.018));
+  box-shadow: inset 0 1px rgba(255,255,255,.06), 0 20px 60px rgba(0, 0, 0, .12);
+  backdrop-filter: blur(16px);
+  transition: transform .35s ease, border-color .35s ease, background .35s ease;
+}
+.glass-card:hover { transform: translateY(-4px); border-color: rgba(103, 232, 249, .42); background: linear-gradient(135deg, rgba(34,211,238,.13), rgba(255,255,255,.025)); }
+.eyebrow { display: inline-flex; align-items: center; gap: .55rem; font-size: .72rem; font-weight: 700; letter-spacing: .18em; color: #67e8f9; }
+.text-gradient { background: linear-gradient(100deg, #e0f7ff 5%, #38bdf8 47%, #2563eb 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.75,.25,1); }
+.reveal.is-visible { opacity: 1; transform: translateY(0); }
+.reveal-delay-2 { transition-delay: .12s; }.reveal-delay-3 { transition-delay: .24s; }
+
+.dashboard-card { border: 1px solid rgba(186, 230, 253, .1); border-radius: 1rem; background: linear-gradient(135deg, rgba(15, 32, 56, .84), rgba(5, 12, 24, .8)); box-shadow: inset 0 1px rgba(255,255,255,.04), 0 16px 50px rgba(0, 0, 0, .16); backdrop-filter: blur(14px); }
+.dashboard-kicker { font-size: .66rem; font-weight: 700; letter-spacing: .17em; color: #67e8f9; }
+.page-enter { animation: page-enter .38s ease-out both; }
+@keyframes page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}

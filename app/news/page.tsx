@@ -1,0 +1,2 @@
+import { AppShell } from "../components/app-shell";
+export default function News() { return <AppShell eyebrow="AIONEX NEWSWIRE" title="Signals worth knowing."><section className="dashboard-card mt-10 p-6"><p className="text-sm leading-7 text-slate-400">Live crypto news and AI market intelligence are available inside the Dashboard intelligence feed, refreshed every minute.</p></section></AppShell>; }

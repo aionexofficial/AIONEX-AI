@@ -70,6 +70,11 @@ html { scroll-behavior: smooth; }
 .page-enter { animation: page-enter .38s ease-out both; }
 @keyframes page-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+.assistant-scroll { scrollbar-width: thin; scrollbar-color: rgba(103, 232, 249, .18) transparent; }
+.assistant-scroll::-webkit-scrollbar { width: 6px; }
+.assistant-scroll::-webkit-scrollbar-track { background: transparent; }
+.assistant-scroll::-webkit-scrollbar-thumb { background: rgba(103, 232, 249, .18); border-radius: 999px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }

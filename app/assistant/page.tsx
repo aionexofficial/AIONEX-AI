@@ -1,2 +1,10 @@
+import { ChatInterface } from "@/components/assistant/chat-interface";
 import { AppShell } from "../components/app-shell";
-export default function Assistant() { return <AppShell eyebrow="AIONEX COPILOT" title="Ask the market anything."><section className="dashboard-card mt-10 p-6"><div className="rounded-2xl bg-cyan-300/10 p-4 text-sm leading-7 text-cyan-50">I’m monitoring your portfolio, market regime, and AIONEX ecosystem signals. What would you like to explore?</div><div className="mt-10 flex gap-3 rounded-xl border border-white/10 bg-black/20 p-2"><input className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm outline-none" placeholder="Ask AIONEX Copilot..." /><button className="rounded-lg bg-cyan-300 px-4 py-2 text-sm font-semibold text-slate-950">Send</button></div></section></AppShell>; }
+
+export default function AssistantPage() {
+  return (
+    <AppShell eyebrow="AIONEX COPILOT" title="Intelligence, on demand.">
+      <ChatInterface />
+    </AppShell>
+  );
+}

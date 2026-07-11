@@ -75,6 +75,10 @@ html { scroll-behavior: smooth; }
 .assistant-scroll::-webkit-scrollbar-track { background: transparent; }
 .assistant-scroll::-webkit-scrollbar-thumb { background: rgba(103, 232, 249, .18); border-radius: 999px; }
 
+/* RainbowKit modal refinements for the AIONEX glass UI. */
+[data-rk] [role="dialog"] { backdrop-filter: blur(22px); }
+[data-rk] button { font-family: inherit; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }

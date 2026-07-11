@@ -1,11 +1,38 @@
 "use client";
 
 import "@rainbow-me/rainbowkit/styles.css";
-import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
-import { mainnet, base, arbitrum } from "wagmi/chains";
+import { walletConfig } from "@/lib/wallet/config";
 
-const config = getDefaultConfig({ appName: "AIONEX AI", projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "aionex-development-project-id", chains: [mainnet, base, arbitrum], ssr: true });
-export function Providers({ children }: { children: ReactNode }) { const [client] = useState(() => new QueryClient()); return <WagmiProvider config={config}><QueryClientProvider client={client}><RainbowKitProvider>{children}</RainbowKitProvider></QueryClientProvider></WagmiProvider>; }
+const theme = darkTheme({
+  accentColor: "#67e8f9",
+  accentColorForeground: "#020617",
+  borderRadius: "large",
+  fontStack: "system",
+  overlayBlur: "small",
+});
+
+theme.colors.modalBackground = "#060c17";
+theme.colors.modalBorder = "rgba(103, 232, 249, 0.18)";
+theme.colors.profileForeground = "#08111f";
+theme.colors.menuItemBackground = "rgba(103, 232, 249, 0.07)";
+theme.shadows.dialog = "0 30px 100px rgba(0, 0, 0, 0.65), 0 0 60px rgba(34, 211, 238, 0.08)";
+
+export function Providers({ children }: { children: ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: false } },
+  }));
+
+  return (
+    <WagmiProvider config={walletConfig} reconnectOnMount>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider theme={theme} modalSize="compact" initialChain={1}>
+          {children}
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}

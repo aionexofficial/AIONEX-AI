@@ -1,23 +1,15 @@
-const required = [
-  "AUTH_SECRET",
-  "ADMIN_USERNAME",
-  "ADMIN_EMAIL",
-  "ADMIN_PASSWORD_HASH",
-  "DATABASE_URL",
-  "CRON_SECRET",
-  "TELEGRAM_BOT_TOKEN",
-  "TELEGRAM_WEBHOOK_SECRET",
-  "NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID",
-  "NEXT_PUBLIC_SITE_URL",
-  "AUTO_PUBLISH",
-];
-
-const missing = required.filter((name) => !process.env[name]?.trim());
-const hasXOAuth1 = ["X_CONSUMER_KEY", "X_CONSUMER_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_TOKEN_SECRET"].every((name) => process.env[name]?.trim());
-const aiMode = process.env.OPENAI_API_KEY?.trim() ? "OpenAI key configured (quota/runtime access must be verified separately)" : "local assistant only; scheduled generation unavailable";
-
-console.log(`Production environment: ${missing.length ? "INCOMPLETE" : "BASE READY"}`);
-for (const name of missing) console.log(`Missing: ${name}`);
-if (!hasXOAuth1 && !process.env.X_USER_ACCESS_TOKEN?.trim()) console.log("Optional integration missing: X user authentication");
-console.log(`AI mode: ${aiMode}`);
-process.exitCode = missing.length ? 1 : 0;
+const required=["AUTH_SECRET","ADMIN_USERNAME","ADMIN_EMAIL","ADMIN_PASSWORD_HASH","DATABASE_URL","CRON_SECRET","TELEGRAM_BOT_TOKEN","TELEGRAM_BOT_USERNAME","TELEGRAM_WEBHOOK_SECRET","NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID","NEXT_PUBLIC_SITE_URL","AUTO_PUBLISH"];
+const errors=required.filter(name=>!process.env[name]?.trim()).map(name=>`Missing: ${name}`);
+if((process.env.AUTH_SECRET||"").length<32)errors.push("AUTH_SECRET must contain at least 32 characters.");
+if((process.env.CRON_SECRET||"").length<32)errors.push("CRON_SECRET must contain at least 32 characters.");
+if((process.env.TELEGRAM_WEBHOOK_SECRET||"").length<24)errors.push("TELEGRAM_WEBHOOK_SECRET must contain at least 24 characters.");
+if(process.env.NEXT_PUBLIC_SITE_URL!=="https://aionex-ai.vercel.app")errors.push("NEXT_PUBLIC_SITE_URL must be https://aionex-ai.vercel.app.");
+if(!/^[^:]+:[a-f\d]{128}$/i.test(process.env.ADMIN_PASSWORD_HASH||""))errors.push("ADMIN_PASSWORD_HASH must be a valid scrypt salt:hash value.");
+if(!["true","false"].includes(process.env.AUTO_PUBLISH||""))errors.push("AUTO_PUBLISH must be true or false.");
+if(process.env.AUTO_PUBLISH==="true"&&!process.env.OPENAI_API_KEY?.trim())errors.push("OPENAI_API_KEY is required when AUTO_PUBLISH=true.");
+const xPublishing=["X_CONSUMER_KEY","X_CONSUMER_SECRET","X_ACCESS_TOKEN","X_ACCESS_TOKEN_SECRET"].every(name=>process.env[name]?.trim())||Boolean(process.env.X_USER_ACCESS_TOKEN?.trim());
+const xVerification=Boolean(process.env.X_CLIENT_ID?.trim()&&process.env.X_CLIENT_SECRET?.trim());
+const youtubeVerification=Boolean(process.env.GOOGLE_CLIENT_ID?.trim()&&process.env.GOOGLE_CLIENT_SECRET?.trim());
+console.log(`Production environment: ${errors.length?"INCOMPLETE":"READY"}`);for(const error of errors)console.log(error);
+console.log(`X publishing: ${xPublishing?"configured":"disabled"}`);console.log(`X task verification: ${xVerification?"credentials present":"manual review only"}`);console.log(`YouTube task verification: ${youtubeVerification?"credentials present":"manual review only"}`);
+process.exitCode=errors.length?1:0;

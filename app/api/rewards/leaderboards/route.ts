@@ -1,0 +1,3 @@
+import { metricLeaderboard } from "@/lib/rewards/db";
+import type { LeaderboardMetric } from "@/lib/rewards/types";
+export async function GET(request:Request){const metric=new URL(request.url).searchParams.get("metric")||"axp";if(!["axp","xp","referrals","mining","tasks"].includes(metric))return Response.json({error:"Invalid metric."},{status:400});const rows=await metricLeaderboard(metric as LeaderboardMetric);return Response.json({metric,leaders:rows.map(row=>({id:String(row.id),displayName:String(row.display_name),axp:Number(row.lifetime_axp),xp:Number(row.xp),referrals:Number(row.referrals),mining:Number(row.mining_claims),tasks:Number(row.completed_tasks),rank:Number(row.rank)}))});}

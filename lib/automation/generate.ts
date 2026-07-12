@@ -1,4 +1,5 @@
 import "server-only";
+import { OFFICIAL_LINKS } from "@/lib/social/config";
 
 type Generated = { title: string; excerpt: string; body: string; socialText: string };
 
@@ -13,7 +14,7 @@ export async function generateDailyPost(day: string): Promise<Generated & { slug
   const response = await fetch("https://api.openai.com/v1/responses", { method: "POST", signal: AbortSignal.timeout(45_000), headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({
     model: process.env.OPENAI_AUTOMATION_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini",
     instructions: "You are AIONEX AI's careful Web3 editor. Write educational, original content. Never invent prices, live events, partnerships, returns, or financial advice. Avoid hype. Return only valid JSON matching the requested keys.",
-    input: `Create the daily crypto/Web3 insight for ${day}. Return JSON with title (max 90 chars), excerpt (max 180), body (500-800 words in Markdown), and socialText (max 240 chars, include https://aionex.ai/news and at most 2 hashtags).`,
+    input: `Create the daily crypto/Web3 insight for ${day}. Return JSON with title (max 90 chars), excerpt (max 180), body (500-800 words in Markdown), and socialText (max 240 chars, include ${OFFICIAL_LINKS.website}/news and at most 2 hashtags).`,
     text: { format: { type: "json_schema", name: "daily_post", strict: true, schema: { type: "object", additionalProperties: false, required: ["title", "excerpt", "body", "socialText"], properties: { title: { type: "string" }, excerpt: { type: "string" }, body: { type: "string" }, socialText: { type: "string" } } } } },
   }) });
   if (!response.ok) throw new Error(`OpenAI generation failed (${response.status}): ${(await response.text()).slice(0, 300)}`);

@@ -10,7 +10,7 @@ AIONEX Points (AXP) are non-transferable engagement points with no monetary valu
 - `reward_identities` links verified EVM wallets and Telegram user IDs to one account.
 - Website wallet authentication uses a short-lived nonce and EIP-191 signature.
 - Telegram Mini App authentication validates Telegram `initData` using the bot token.
-- A website user can generate a 15-minute one-use link code and open `https://t.me/AIONEXAIBot?start=link_CODE` to merge Telegram into the same account.
+- A website user can generate a 15-minute one-use link code and open `https://t.me/aionexweb3?start=link_CODE` to merge Telegram into the same account.
 - The Telegram webhook requires `X-Telegram-Bot-Api-Secret-Token` and never accepts a bot token from a request.
 
 ## AXP accounting

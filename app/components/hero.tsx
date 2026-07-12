@@ -1,4 +1,5 @@
 import { AnimatedStats } from "./animated-stats";
+import { SocialButtons } from "@/components/social/social-buttons";
 
 export function Hero() {
   return <section id="top" className="mx-auto max-w-6xl px-6 pb-24 pt-24 sm:pt-32">
@@ -8,7 +9,7 @@ export function Hero() {
         <h1 className="max-w-3xl text-5xl font-semibold leading-[.98] tracking-[-.055em] sm:text-6xl lg:text-7xl">Build with the speed of <span className="text-gradient">intelligence.</span></h1>
         <p className="mt-7 max-w-xl text-lg leading-8 text-slate-300">AIONEX AI connects advanced intelligence, community ownership, and transparent on-chain infrastructure in one powerful ecosystem.</p>
         <div className="mt-9 flex flex-wrap gap-4"><a href="#tokenomics" className="rounded-xl bg-cyan-400 px-6 py-3.5 font-semibold text-slate-950 shadow-[0_0_30px_rgba(34,211,238,.3)] transition hover:-translate-y-0.5 hover:bg-cyan-300">Explore the token <span aria-hidden>↗</span></a><a href="#roadmap" className="rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 font-semibold text-white transition hover:border-cyan-200/50 hover:bg-white/10">View roadmap</a></div>
-        <AnimatedStats />
+        <div className="mt-5"><SocialButtons /></div><AnimatedStats />
       </div>
       <div className="float relative mx-auto aspect-square w-full max-w-[430px]">
         <div className="pulse-ring absolute inset-[8%] rounded-full border border-cyan-300/20" /><div className="orbit absolute inset-[2%] rounded-full border border-dashed border-cyan-100/20" />

@@ -63,7 +63,7 @@ export async function findPostForDay(day: string) {
 
 export async function createPost(input: Omit<AutomationPost, "id" | "publishedAt" | "telegramStatus" | "telegramPostId" | "xStatus" | "xPostId" | "lastError" | "createdAt" | "updatedAt">) {
   await ensureAutomationSchema();
-  const rows = await database()`INSERT INTO automation_posts (title, slug, excerpt, body, social_text, status, scheduled_for) VALUES (${input.title}, ${input.slug}, ${input.excerpt}, ${input.body}, ${input.socialText}, ${input.status}, ${input.scheduledFor}::date) RETURNING *`;
+  const rows = await database()`INSERT INTO automation_posts (title, slug, excerpt, body, social_text, status, scheduled_for) VALUES (${input.title}, ${input.slug}, ${input.excerpt}, ${input.body}, ${input.socialText}, ${input.status}, ${input.scheduledFor}::date) ON CONFLICT(scheduled_for) DO UPDATE SET scheduled_for=EXCLUDED.scheduled_for RETURNING *`;
   return map(rows[0]);
 }
 

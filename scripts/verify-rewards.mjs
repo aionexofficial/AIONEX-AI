@@ -25,7 +25,7 @@ async function request(path, options = {}) {
 
 try {
   const migrations = await sql`SELECT filename FROM schema_migrations ORDER BY filename`;
-  const requiredTables = ["automation_posts","reward_users","reward_identities","reward_tasks","reward_task_claims","reward_point_ledger","reward_badges","reward_user_badges","reward_link_codes","reward_anti_cheat_events","reward_settings","schema_migrations"];
+  const requiredTables = ["automation_posts","reward_users","reward_identities","reward_tasks","reward_task_claims","reward_point_ledger","reward_badges","reward_user_badges","reward_link_codes","reward_anti_cheat_events","reward_settings","reward_social_settings","reward_social_verifications","reward_social_verification_history","schema_migrations"];
   const tables = await sql`SELECT table_name FROM information_schema.tables WHERE table_schema='public'`;
   const tableNames = new Set(tables.map((row) => row.table_name));
   if (!requiredTables.every((table) => tableNames.has(table))) throw new Error("Required database tables are missing.");
@@ -59,7 +59,7 @@ try {
   if (telegramIdentity[0]) createdUsers.push(String(telegramIdentity[0].user_id));
 
   const checks = {
-    migrations: migrations.length === 2,
+    migrations: migrations.length >= 5,
     schema: true,
     mining: mine1.status === 200 && mine2.status === 409,
     dailyLogin: login1.status === 200 && login2.status === 409,
@@ -83,6 +83,6 @@ try {
   if (Object.values(checks).some((passed) => !passed)) process.exitCode = 1;
 } finally {
   if (taskId) await sql`DELETE FROM reward_tasks WHERE id=${taskId}::uuid`;
-  for (const userId of [...new Set(createdUsers)]) await sql`DELETE FROM reward_users WHERE id=${userId}::uuid`;
+  for (const userId of [...new Set(createdUsers)].reverse()) await sql`DELETE FROM reward_users WHERE id=${userId}::uuid`;
   console.log("Disposable verification records removed: OK");
 }

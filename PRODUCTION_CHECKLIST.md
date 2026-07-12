@@ -5,8 +5,7 @@
 - [ ] Configure `AUTH_SECRET` with at least 32 random characters in Vercel Production.
 - [ ] Configure `ADMIN_USERNAME`, `ADMIN_EMAIL`, and a scrypt `ADMIN_PASSWORD_HASH`.
 - [ ] Configure `DATABASE_URL` using a production Postgres/Neon connection.
-- [ ] Apply `db/migrations/001_automation_posts.sql` to the production database.
-- [ ] Apply `db/migrations/002_rewards_ecosystem.sql` and verify AXP ledger constraints.
+- [ ] Apply all checked-in migrations `001` through `005` with `npm run db:migrate`.
 - [ ] Configure a strong, independent `CRON_SECRET`.
 - [ ] Configure `TELEGRAM_BOT_TOKEN`; ensure the bot is an administrator of `@aionexweb3`.
 - [ ] Configure `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` and `NEXT_PUBLIC_SITE_URL`.
@@ -19,6 +18,7 @@
 - [ ] Run `npm ci`, `npm run lint`, `npm run typecheck`, and `npm run build`.
 - [ ] Run `npm run check:production-env` in the deployment environment.
 - [ ] Confirm `/`, `/robots.txt`, and `/sitemap.xml` return HTTP 200.
+- [ ] Confirm `/api/health` returns HTTP 200 with `status: "ok"` and five migrations.
 - [ ] Confirm `/admin` redirects unauthenticated users to `/admin/login`.
 - [ ] Confirm invalid admin credentials return 401 and valid credentials create a secure, HTTP-only session.
 - [ ] Confirm `/api/admin/posts` rejects unauthenticated requests.

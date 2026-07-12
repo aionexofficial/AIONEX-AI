@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { SolanaControls } from "./solana-controls";
 import { WalletControls } from "./wallet-controls";
 
-const nav = [["Home", "/"], ["Dashboard", "/dashboard"], ["Rewards", "/rewards"], ["AI Assistant", "/assistant"], ["Portfolio", "/portfolio"], ["Buy", "/buy"], ["Swap", "/swap"], ["Staking", "/staking"], ["Market", "/market"], ["News", "/news"], ["Settings", "/settings"]];
+const nav = [["Home", "/"], ["Dashboard", "/dashboard"], ["Rewards", "/rewards"], ["Tasks", "/tasks"], ["Profile", "/profile"], ["Leaderboard", "/leaderboard"], ["AI Assistant", "/assistant"], ["Market", "/market"], ["News", "/news"], ["Settings", "/settings"]];
 
 export function AppShell({ title, eyebrow, children }: { title: string; eyebrow: string; children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);

@@ -1,0 +1,4 @@
+import { getAdminSession } from "@/lib/admin/auth";
+import { adminResetSocialVerification } from "@/lib/rewards/db";
+import { isSameOrigin } from "@/lib/http/request";
+export async function POST(request:Request){if(!isSameOrigin(request))return Response.json({error:"Invalid origin."},{status:403});const admin=await getAdminSession();if(!admin)return Response.json({error:"Unauthorized"},{status:401});const{userId,provider}=await request.json() as {userId?:string;provider?:"telegram"|"x"|"youtube"};if(!userId||!provider||!["telegram","x","youtube"].includes(provider))return Response.json({error:"Invalid reset request."},{status:400});return await adminResetSocialVerification(userId,provider,admin.username)?Response.json({ok:true}):Response.json({error:"Verification not found."},{status:404});}

@@ -1,4 +1,10 @@
-export const taskCategories = ["youtube_subscribe", "youtube_watch", "youtube_like", "youtube_comment", "telegram_join", "telegram_read_news", "x_follow", "x_repost", "website_visit", "wallet_connect", "ai_chat", "daily_quiz"] as const;
+export const taskCategories = ["telegram_join","telegram_group_join","telegram_read_news","x_follow","x_repost","x_like","x_profile_visit","youtube_subscribe","youtube_watch","youtube_like","youtube_comment","website_visit","wallet_connect","daily_login","daily_mining","referral_invite","ai_chat","daily_quiz","special_campaign"] as const;
 export type TaskCategory = typeof taskCategories[number];
-export type RewardTask = { id: string; category: TaskCategory; title: string; description: string; rewardAxp: number; enabled: boolean; repeatMode: "once" | "daily" | "cooldown"; cooldownHours: number | null; verificationMode: "manual" | "url" | "telegram" | "wallet" | "system" | "quiz"; verificationConfig: Record<string, unknown>; completed: boolean; claimStatus: string | null };
-export type RewardProfile = { id: string; displayName: string; axpBalance: number; lifetimeAxp: number; loginStreak: number; lastCheckinDate: string | null; lastMinedAt: string | null; referralCode: string; rank: number | null; badges: Array<{ slug: string; name: string; description: string; icon: string }> };
+export const taskGroups = ["daily","social","mining","referral","special"] as const;
+export type TaskGroup = typeof taskGroups[number];
+export type TaskDifficulty = "easy"|"medium"|"hard"|"legendary";
+export type VerificationMode = "manual"|"url"|"telegram"|"wallet"|"system"|"quiz";
+export type RewardTask = {id:string;category:TaskCategory;group:TaskGroup;title:string;description:string;icon:string;rewardAxp:number;rewardXp:number;difficulty:TaskDifficulty;enabled:boolean;status:"available"|"pending"|"completed"|"locked";repeatMode:"once"|"daily"|"cooldown";cooldownHours:number|null;verificationMode:VerificationMode;verificationConfig:Record<string,unknown>;taskUrl:string|null;createdAt:string;completedAt:string|null;completed:boolean;claimStatus:string|null;completionCount:number};
+export type RewardProfile = {id:string;displayName:string;axpBalance:number;lifetimeAxp:number;xp:number;level:number;loginStreak:number;miningStreak:number;completedTasks:number;pendingTasks:number;lastCheckinDate:string|null;lastMinedAt:string|null;referralCode:string;referralCount:number;rank:number|null;badges:Array<{slug:string;name:string;description:string;icon:string}>};
+export type RewardHistoryItem = {id:string;amount:number;xpAwarded:number;reason:string;metadata:Record<string,unknown>;createdAt:string};
+export type LeaderboardMetric = "axp"|"xp"|"referrals"|"mining"|"tasks";

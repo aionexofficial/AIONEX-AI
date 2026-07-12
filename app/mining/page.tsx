@@ -1,0 +1,2 @@
+import { MiningPage } from "@/components/rewards/mining-page";import { miningStats } from "@/lib/rewards/db";import { getRewardUserId } from "@/lib/rewards/session";
+export const dynamic="force-dynamic";export default async function Page(){const id=await getRewardUserId();let stats={claims:0,earned:0,lastClaim:null as string|null,cooldownHours:24};try{if(id){const row=await miningStats(id);stats={claims:row.claims,earned:row.earned,lastClaim:row.last_claim,cooldownHours:row.cooldown_hours};}}catch{}return <MiningPage authenticated={Boolean(id)} initial={stats}/>;}

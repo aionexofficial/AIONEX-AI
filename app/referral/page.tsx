@@ -1,0 +1,2 @@
+import { ReferralPage } from "@/components/rewards/referral-page";import { getProfile } from "@/lib/rewards/db";import { getRewardUserId } from "@/lib/rewards/session";
+export const dynamic="force-dynamic";export default async function Page(){const id=await getRewardUserId();let profile:Awaited<ReturnType<typeof getProfile>>=null;try{if(id)profile=await getProfile(id);}catch{}return <ReferralPage code={profile?.referralCode||null} count={profile?.referralCount||0}/>;}

@@ -1,0 +1,3 @@
+import { healthCheck } from "@/lib/rewards/db";
+export const dynamic="force-dynamic";
+export async function GET(){try{const health=await healthCheck();const configured=Boolean(process.env.AUTH_SECRET&&process.env.DATABASE_URL&&process.env.TELEGRAM_BOT_TOKEN&&process.env.TELEGRAM_WEBHOOK_SECRET);return Response.json({status:health.database&&health.migrations>=5&&configured?"ok":"degraded",database:health.database,migrations:health.migrations,configured},{status:health.database?200:503,headers:{"Cache-Control":"no-store"}});}catch{return Response.json({status:"unavailable",database:false,configured:false},{status:503,headers:{"Cache-Control":"no-store"}});}}

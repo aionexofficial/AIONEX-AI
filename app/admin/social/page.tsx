@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation";
+import { SocialManager } from "@/components/admin/social-manager";
+import { getAdminSession } from "@/lib/admin/auth";
+import { adminCompletedSocialUsers,adminSocialSettings,adminSocialStats } from "@/lib/rewards/db";
+export const dynamic="force-dynamic";
+export default async function Page(){if(!await getAdminSession())redirect("/admin/login");let settings:Awaited<ReturnType<typeof adminSocialSettings>>=[],stats:Awaited<ReturnType<typeof adminSocialStats>>=[],users:Awaited<ReturnType<typeof adminCompletedSocialUsers>>=[];try{[settings,stats,users]=await Promise.all([adminSocialSettings(),adminSocialStats(),adminCompletedSocialUsers()]);}catch{}return <SocialManager initialSettings={settings.map(s=>({provider:String(s.provider),url:String(s.url),enabled:Boolean(s.enabled)}))} stats={stats.map(s=>({provider:String(s.provider),submissions:Number(s.submissions),verified:Number(s.verified),rewarded:Number(s.rewarded),rewards:Number(s.rewards)}))} initialUsers={users.map(u=>({userId:String(u.user_id),displayName:String(u.display_name),provider:u.provider as "telegram"|"x"|"youtube",verificationDate:String(u.verification_date),rewardAmount:Number(u.reward_amount)}))}/>;}

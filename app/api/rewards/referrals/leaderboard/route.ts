@@ -1,0 +1,2 @@
+import { referralLeaderboard } from "@/lib/rewards/db";
+export async function GET(){const rows=await referralLeaderboard();return Response.json({leaders:rows.map(row=>({id:String(row.id),displayName:String(row.display_name),referralCode:String(row.referral_code),referrals:Number(row.referrals),rank:Number(row.rank)}))},{headers:{"Cache-Control":"public, s-maxage=60, stale-while-revalidate=300"}});}

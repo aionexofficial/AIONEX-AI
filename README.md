@@ -1,5 +1,11 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Daily publishing automation
+
+The production workflow generates one Web3 post at 09:00 UTC daily, stores it in Postgres, publishes it on `/news`, and sends it to Telegram and X. It is idempotent per UTC day and does not resend successful channel deliveries.
+
+Configure the variables in `.env.example` in Vercel. Add Neon Postgres through the Vercel Marketplace, make the Telegram bot an administrator of `@aionexweb3`, and create X OAuth 1.0a user credentials with Read/Write access. Set a strong `CRON_SECRET`; Vercel sends it to the cron route as a bearer token. Open `/admin/posts` to generate, edit, approve, publish, or retry posts. Set `AUTO_PUBLISH=false` to require approval for every scheduled post. The table is created safely on first use.
+
 ## Getting Started
 
 First, run the development server:

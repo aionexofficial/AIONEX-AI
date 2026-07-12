@@ -1,6 +1,7 @@
 import { createPost, findPostForDay } from "@/lib/automation/db";
 import { generateDailyPost } from "@/lib/automation/generate";
 import { publishPost } from "@/lib/automation/publish";
+import { logError } from "@/lib/observability/logger";
 
 export const maxDuration = 60;
 
@@ -21,6 +22,7 @@ export async function GET(request: Request) {
     if (process.env.AUTO_PUBLISH !== "false" && post.status !== "published") post = await publishPost(post.id);
     return Response.json({ ok: post?.status === "published" || post?.status === "draft", post });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Automation failed" }, { status: 500 });
+    logError("cron.daily-post", error);
+    return Response.json({ error: "Daily publishing failed. Check the server logs." }, { status: 500 });
   }
 }

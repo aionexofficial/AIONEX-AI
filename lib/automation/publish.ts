@@ -6,7 +6,7 @@ import { getPost, updateDelivery } from "./db";
 async function publishTelegram(text: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not configured.");
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHANNEL_ID || "@aionexweb3", text, disable_web_page_preview: false }) });
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method: "POST", signal: AbortSignal.timeout(15_000), headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: process.env.TELEGRAM_CHANNEL_ID || "@aionexweb3", text, disable_web_page_preview: false }) });
   const result = await response.json() as { ok?: boolean; result?: { message_id?: number }; description?: string };
   if (!response.ok || !result.ok) throw new Error(`Telegram: ${result.description || response.statusText}`);
   return String(result.result?.message_id || "sent");
@@ -24,7 +24,7 @@ async function publishX(text: string) {
     authorization = `OAuth ${Object.entries(params).sort(([a], [b]) => a.localeCompare(b)).map(([key, value]) => `${encode(key)}="${encode(value)}"`).join(", ")}`;
   } else if (process.env.X_USER_ACCESS_TOKEN) authorization = `Bearer ${process.env.X_USER_ACCESS_TOKEN}`;
   else throw new Error("X user authentication is not configured.");
-  const response = await fetch(url, { method: "POST", headers: { Authorization: authorization, "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+  const response = await fetch(url, { method: "POST", signal: AbortSignal.timeout(15_000), headers: { Authorization: authorization, "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
   const result = await response.json() as { data?: { id?: string }; detail?: string; title?: string };
   if (!response.ok || !result.data?.id) throw new Error(`X: ${result.detail || result.title || response.statusText}`);
   return result.data.id;

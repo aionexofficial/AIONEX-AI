@@ -1,5 +1,8 @@
 import { AppShell } from "../components/app-shell";
 import { listPosts } from "@/lib/automation/db";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Web3 News", description: "Daily crypto and Web3 intelligence from AIONEX AI.", alternates: { canonical: "/news" } };
 
 export const dynamic = "force-dynamic";
 export default async function News() {

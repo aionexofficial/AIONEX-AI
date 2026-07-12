@@ -10,7 +10,7 @@ function slugify(value: string, day: string) {
 export async function generateDailyPost(day: string): Promise<Generated & { slug: string }> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY is required for daily post generation.");
-  const response = await fetch("https://api.openai.com/v1/responses", { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({
+  const response = await fetch("https://api.openai.com/v1/responses", { method: "POST", signal: AbortSignal.timeout(45_000), headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({
     model: process.env.OPENAI_AUTOMATION_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini",
     instructions: "You are AIONEX AI's careful Web3 editor. Write educational, original content. Never invent prices, live events, partnerships, returns, or financial advice. Avoid hype. Return only valid JSON matching the requested keys.",
     input: `Create the daily crypto/Web3 insight for ${day}. Return JSON with title (max 90 chars), excerpt (max 180), body (500-800 words in Markdown), and socialText (max 240 chars, include https://aionex.ai/news and at most 2 hashtags).`,

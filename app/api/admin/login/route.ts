@@ -1,5 +1,7 @@
 import { ADMIN_COOKIE, createAdminSession, verifyAdminCredentials } from "@/lib/admin/auth";
 import { cookies } from "next/headers";
+import { exceedsContentLength, isSameOrigin } from "@/lib/http/request";
+import { logError } from "@/lib/observability/logger";
 
 type Attempt = { count: number; resetAt: number };
 const attempts = new Map<string, Attempt>();
@@ -10,13 +12,9 @@ function requestKey(request: Request) {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local";
 }
 
-function isSameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  return !origin || new URL(origin).host === new URL(request.url).host;
-}
-
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return Response.json({ error: "Invalid request origin." }, { status: 403 });
+  if (exceedsContentLength(request, 4_096)) return Response.json({ error: "Request is too large." }, { status: 413 });
   const key = requestKey(request);
   const now = Date.now();
   const current = attempts.get(key);
@@ -37,7 +35,8 @@ export async function POST(request: Request) {
     const session = createAdminSession(username.trim().toLowerCase());
     (await cookies()).set(ADMIN_COOKIE, session.value, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: session.maxAge });
     return Response.json({ ok: true });
-  } catch {
+  } catch (error) {
+    logError("admin.login", error);
     return Response.json({ error: "Admin authentication is not configured." }, { status: 503 });
   }
 }

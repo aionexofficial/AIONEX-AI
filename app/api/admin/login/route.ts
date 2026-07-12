@@ -26,15 +26,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as { email?: string; password?: string };
-    const email = body.email?.slice(0, 254) ?? "";
+    const body = await request.json() as { username?: string; password?: string };
+    const username = body.username?.slice(0, 64) ?? "";
     const password = body.password?.slice(0, 256) ?? "";
-    if (!verifyAdminCredentials(email, password)) {
+    if (!verifyAdminCredentials(username, password)) {
       attempts.set(key, { ...attempt, count: attempt.count + 1 });
-      return Response.json({ error: "Invalid email or password." }, { status: 401 });
+      return Response.json({ error: "Invalid username or password." }, { status: 401 });
     }
     attempts.delete(key);
-    const session = createAdminSession(email.trim().toLowerCase());
+    const session = createAdminSession(username.trim().toLowerCase());
     (await cookies()).set(ADMIN_COOKIE, session.value, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: session.maxAge });
     return Response.json({ ok: true });
   } catch {

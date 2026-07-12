@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 export const ADMIN_COOKIE = "aionex_admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
-type AdminSession = { email: string; role: "admin"; exp: number; nonce: string };
+type AdminSession = { username: string; role: "admin"; exp: number; nonce: string };
 
 function secret() {
   const value = process.env.AUTH_SECRET;
@@ -20,9 +20,9 @@ function safeEqual(left: string, right: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function verifyAdminCredentials(email: string, password: string) {
-  const expectedEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  if (!expectedEmail || !safeEqual(email.trim().toLowerCase(), expectedEmail)) return false;
+export function verifyAdminCredentials(username: string, password: string) {
+  const expectedUsername = process.env.ADMIN_USERNAME?.trim().toLowerCase();
+  if (!expectedUsername || !safeEqual(username.trim().toLowerCase(), expectedUsername)) return false;
 
   const encoded = process.env.ADMIN_PASSWORD_HASH;
   if (encoded) {
@@ -37,10 +37,10 @@ export function verifyAdminCredentials(email: string, password: string) {
   return process.env.NODE_ENV !== "production" && Boolean(process.env.ADMIN_PASSWORD) && safeEqual(password, process.env.ADMIN_PASSWORD!);
 }
 
-export function createAdminSession(email: string) {
+export function createAdminSession(username: string) {
   const signingSecret = secret();
   if (!signingSecret) throw new Error("Admin authentication is not configured.");
-  const payload: AdminSession = { email, role: "admin", exp: Date.now() + SESSION_TTL_SECONDS * 1000, nonce: randomBytes(16).toString("hex") };
+  const payload: AdminSession = { username, role: "admin", exp: Date.now() + SESSION_TTL_SECONDS * 1000, nonce: randomBytes(16).toString("hex") };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = createHmac("sha256", signingSecret).update(encoded).digest("base64url");
   return { value: `${encoded}.${signature}`, maxAge: SESSION_TTL_SECONDS };
@@ -55,7 +55,7 @@ export function verifyAdminSession(value?: string): AdminSession | null {
   if (!safeEqual(signature, expected)) return null;
   try {
     const session = JSON.parse(Buffer.from(encoded, "base64url").toString()) as AdminSession;
-    if (!session.email || session.role !== "admin" || !session.nonce || session.exp <= Date.now()) return null;
+    if (!session.username || session.role !== "admin" || !session.nonce || session.exp <= Date.now()) return null;
     return session;
   } catch { return null; }
 }

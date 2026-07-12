@@ -1,5 +1,5 @@
 import { connectorsForWallets } from "@rainbow-me/rainbowkit";
-import { coinbaseWallet, metaMaskWallet, phantomWallet, rabbyWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
+import { braveWallet, coinbaseWallet, metaMaskWallet, phantomWallet, rabbyWallet, trustWallet, walletConnectWallet } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, createStorage, http } from "wagmi";
 import { supportedChains } from "./chains";
 
@@ -13,6 +13,8 @@ const connectors = connectorsForWallets(
       rabbyWallet,
       coinbaseWallet,
       phantomWallet,
+      braveWallet,
+      trustWallet,
       walletConnectWallet,
     ],
   }],

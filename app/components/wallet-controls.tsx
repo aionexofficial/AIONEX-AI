@@ -1,6 +1,7 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useDisconnect } from "wagmi";
 import { useWallet } from "@/hooks/use-wallet";
@@ -65,7 +66,7 @@ export function WalletControls() {
                 <div className="rounded-xl border border-white/[.07] bg-white/[.025] p-3"><span className="block text-[10px] uppercase tracking-wider text-slate-500">Balance</span><span className="mt-1 block truncate text-xs font-medium text-slate-200">{wallet.isLoadingDetails ? "Loading…" : wallet.balance ?? "—"}</span></div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/[.07] p-3"><button type="button" onClick={() => navigator.clipboard.writeText(wallet.address ?? "")} className="rounded-lg px-3 py-2 text-xs text-slate-400 transition hover:bg-white/5 hover:text-cyan-200">Copy address</button><button type="button" onClick={() => { disconnect(); setOpen(false); }} className="rounded-lg px-3 py-2 text-xs text-rose-300 transition hover:bg-rose-400/10">Disconnect</button></div>
+              <div className="grid grid-cols-3 gap-1 border-t border-white/[.07] p-3"><Link href="/portfolio" onClick={() => setOpen(false)} className="rounded-lg px-2 py-2 text-center text-xs text-cyan-200 transition hover:bg-cyan-300/[.07]">Portfolio</Link><button type="button" onClick={() => navigator.clipboard.writeText(wallet.address ?? "")} className="rounded-lg px-2 py-2 text-xs text-slate-400 transition hover:bg-white/5 hover:text-cyan-200">Copy</button><button type="button" onClick={() => { disconnect(); setOpen(false); }} className="rounded-lg px-2 py-2 text-xs text-rose-300 transition hover:bg-rose-400/10">Disconnect</button></div>
             </div>}
           </div>
         );

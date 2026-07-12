@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { WagmiProvider } from "wagmi";
 import { walletConfig } from "@/lib/wallet/config";
+import { SolanaProvider } from "@/components/wallet/solana-provider";
 
 const theme = darkTheme({
   accentColor: "#67e8f9",
@@ -30,7 +31,7 @@ export function Providers({ children }: { children: ReactNode }) {
     <WagmiProvider config={walletConfig} reconnectOnMount>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={theme} modalSize="compact" initialChain={1}>
-          {children}
+          <SolanaProvider>{children}</SolanaProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

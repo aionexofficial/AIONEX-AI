@@ -27,11 +27,15 @@ function clientAddress(request: Request) {
 }
 
 export async function consumeAdminLoginAttempt(request: Request) {
+  return consumeAuthAttempt(request, "admin_login", 5);
+}
+
+export async function consumeAuthAttempt(request: Request, scope: string, limit = 10) {
   const { sql, secret } = database();
   const key = hash(clientAddress(request), secret);
   const rows = await sql`
     INSERT INTO auth_rate_limits(scope, key_hash, attempt_count, reset_at)
-    VALUES ('admin_login', ${key}, 1, NOW() + INTERVAL '15 minutes')
+    VALUES (${scope}, ${key}, 1, NOW() + INTERVAL '15 minutes')
     ON CONFLICT(scope, key_hash) DO UPDATE SET
       attempt_count = CASE
         WHEN auth_rate_limits.reset_at <= NOW() THEN 1
@@ -46,7 +50,7 @@ export async function consumeAdminLoginAttempt(request: Request) {
   `;
 
   return {
-    allowed: Number(rows[0].attempt_count) <= 5,
+    allowed: Number(rows[0].attempt_count) <= limit,
     retryAfter: Math.max(
       1,
       Math.ceil(

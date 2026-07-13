@@ -27,6 +27,15 @@ html { scroll-behavior: smooth; }
   overscroll-behavior-y: none;
 }
 
+.mini-app.light {
+  filter: invert(.91) hue-rotate(175deg);
+}
+.mini-app.light img,
+.mini-app.light video,
+.mini-app.light canvas {
+  filter: invert(1) hue-rotate(185deg);
+}
+
 .mini-particles {
   background-image:
     radial-gradient(circle at 12% 18%, rgba(103, 232, 249, .8) 0 1px, transparent 1.6px),

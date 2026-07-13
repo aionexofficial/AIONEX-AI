@@ -20,7 +20,6 @@ import {
   Rocket,
   Send,
   Share2,
-  ShieldCheck,
   Sparkles,
   Star,
   Target,
@@ -73,8 +72,8 @@ type ReferralLeader = {
   referrals: number;
   rank: number;
 };
-type NavId = "home" | "mine" | "tasks" | "invite" | "ai" | "profile";
-type Overlay = "wallet" | "leaderboard" | null;
+type NavId = "home" | "mine" | "tasks" | "invite" | "wallet" | "profile";
+type Overlay = "ai" | "rewards" | "leaderboard" | null;
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const nav = [
@@ -82,7 +81,7 @@ const nav = [
   { id: "mine", label: "Mine", icon: Pickaxe },
   { id: "tasks", label: "Tasks", icon: Gift },
   { id: "invite", label: "Invite", icon: Users },
-  { id: "ai", label: "AI", icon: Bot },
+  { id: "wallet", label: "Wallet", icon: WalletCards },
   { id: "profile", label: "Profile", icon: CircleUserRound },
 ] as const;
 const taskFilters = [
@@ -255,55 +254,31 @@ function Splash({ onDone }: { onDone: () => void }) {
 }
 
 function Welcome({ onOpen }: { onOpen: () => void }) {
+  const [step, setStep] = useState(0);
+  const slides = [
+    { icon: Pickaxe, eyebrow: "Daily mining", title: "Mine your edge.", copy: "Claim AXP and XP every day, build your mining streak, and grow your on-chain reputation.", tone: "from-cyan-300 to-blue-500" },
+    { icon: Gift, eyebrow: "Verified rewards", title: "Every action counts.", copy: "Complete ecosystem missions, unlock achievements, and collect special seasonal rewards.", tone: "from-blue-400 to-violet-500" },
+    { icon: Users, eyebrow: "Invite system", title: "Grow together.", copy: "Invite friends with your unique link. Both sides earn while your referral level advances.", tone: "from-violet-400 to-fuchsia-500" },
+  ];
+  const slide = slides[step];
+  const Icon = slide.icon;
+  const finish = () => { localStorage.setItem("aionex-onboarded", "1"); onOpen(); };
   return (
     <motion.div
       {...pageMotion}
       className="flex min-h-[calc(100dvh-40px)] flex-col justify-between px-5 pb-8 pt-12 text-center"
     >
-      <div>
-        <div className="mx-auto w-fit">
-          <Logo size="lg" />
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="mx-auto mt-9 inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-300/[.06] px-4 py-2 text-[9px] font-semibold uppercase tracking-[.2em] text-cyan-200">
-            <Sparkles size={12} /> AIONEX V3 is live
-          </div>
-          <h1 className="mt-6 text-4xl font-black leading-[.95] tracking-[-.055em]">
-            Your edge in the
-            <br />
-            <span className="bg-gradient-to-r from-cyan-200 via-blue-400 to-violet-400 bg-clip-text text-transparent">
-              on-chain economy.
-            </span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-xs text-sm leading-6 text-slate-400">
-            Mine AXP. Complete missions. Unlock intelligent insights. Build your
-            reputation in one living ecosystem.
-          </p>
-        </motion.div>
+      <div><div className="flex items-center justify-between"><Logo size="sm"/><button onClick={finish} className="text-[10px] font-semibold text-slate-500">Skip</button></div><AnimatePresence mode="wait"><motion.div key={step} initial={{opacity:0,x:28}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-28}} className="mt-16"><motion.div animate={{y:[0,-8,0],rotate:[0,2,0]}} transition={{duration:3,repeat:Infinity}} className={`mx-auto grid h-28 w-28 place-items-center rounded-[34px] bg-gradient-to-br ${slide.tone} shadow-[0_0_55px_rgba(34,211,238,.2)]`}><Icon size={46} className="text-slate-950"/></motion.div><p className="mt-10 text-[9px] font-bold uppercase tracking-[.28em] text-cyan-300">{slide.eyebrow}</p><h1 className="mt-3 text-4xl font-black leading-none tracking-[-.055em]">{slide.title}</h1><p className="mx-auto mt-5 max-w-xs text-sm leading-6 text-slate-400">{slide.copy}</p></motion.div></AnimatePresence>
       </div>
       <div>
-        <div className="mb-5 flex justify-center gap-5 text-[10px] text-slate-500">
-          <span className="flex items-center gap-1">
-            <ShieldCheck size={13} className="text-emerald-300" /> Secure
-          </span>
-          <span className="flex items-center gap-1">
-            <Zap size={13} className="text-amber-300" /> Instant
-          </span>
-          <span className="flex items-center gap-1">
-            <Globe2 size={13} className="text-cyan-300" /> Global
-          </span>
-        </div>
+        <div className="mb-6 flex justify-center gap-2">{slides.map((_,i)=><motion.span animate={{width:i===step?28:7,backgroundColor:i===step?"#67e8f9":"#334155"}} key={i} className="h-1.5 rounded-full"/>)}</div>
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={onOpen}
+          onClick={() => step < slides.length - 1 ? setStep(step + 1) : finish()}
           className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-500 p-[1px] shadow-[0_0_40px_rgba(34,211,238,.25)]"
         >
           <span className="flex h-15 items-center justify-center gap-2 rounded-[15px] bg-[#07101b]/25 text-sm font-bold text-white">
-            Open AIONEX <Rocket size={17} />
+            {step < slides.length - 1 ? "Continue" : "Open AIONEX"} <ChevronRight size={17} />
           </span>
         </motion.button>
       </div>
@@ -354,6 +329,7 @@ export function RewardsDashboard({
 }) {
   const [splash, setSplash] = useState(true),
     [entered, setEntered] = useState(false),
+    [theme, setTheme] = useState<"dark" | "light">("dark"),
     [active, setActive] = useState<NavId>("home"),
     [overlay, setOverlay] = useState<Overlay>(null);
   const [profile, setProfile] = useState(initialProfile),
@@ -411,6 +387,7 @@ export function RewardsDashboard({
     setLoading(false);
   }, []);
   useEffect(() => {
+    if (localStorage.getItem("aionex-onboarded")) setEntered(true);
     const saved = localStorage.getItem("aionex-ai-history");
     if (saved)
       try {
@@ -425,10 +402,12 @@ export function RewardsDashboard({
             initData?: string;
             setHeaderColor?: (c: string) => void;
             setBackgroundColor?: (c: string) => void;
+            colorScheme?: "light" | "dark";
           };
         };
       }
     ).Telegram?.WebApp;
+    if (webApp?.colorScheme) setTheme(webApp.colorScheme);
     webApp?.ready?.();
     webApp?.expand?.();
     webApp?.setHeaderColor?.("#02050d");
@@ -692,7 +671,7 @@ export function RewardsDashboard({
               Total AXP balance
             </p>
             <button
-              onClick={() => setOverlay("wallet")}
+              onClick={() => go("wallet")}
               className="flex items-center gap-1 text-[10px] text-cyan-300"
             >
               Wallet <ChevronRight size={12} />
@@ -784,6 +763,7 @@ export function RewardsDashboard({
           </p>
         </Glass>
       </div>
+      <section><SectionTitle title="Quick actions"/><div className="grid grid-cols-4 gap-2">{[{label:"AI",icon:Bot,action:()=>setOverlay("ai")},{label:"Rewards",icon:Gift,action:()=>setOverlay("rewards")},{label:"Wallet",icon:WalletCards,action:()=>go("wallet")},{label:"Rank",icon:Trophy,action:()=>setOverlay("leaderboard")}].map(({label,icon:Icon,action})=><motion.button whileTap={{scale:.92}} key={label} onClick={action} className="flex flex-col items-center gap-2 rounded-2xl border border-white/[.07] bg-white/[.03] py-3 text-[9px] text-slate-300"><Icon size={17} className="text-cyan-300"/>{label}</motion.button>)}</div></section>
       <Glass
         onClick={() => setOverlay("leaderboard")}
         className="flex w-full items-center justify-between p-4 text-left"
@@ -807,7 +787,7 @@ export function RewardsDashboard({
           title="AI market summary"
           action={
             <button
-              onClick={() => go("ai")}
+              onClick={() => setOverlay("ai")}
               className="text-[10px] text-cyan-300"
             >
               Ask AI
@@ -1401,6 +1381,16 @@ export function RewardsDashboard({
     </motion.div>
   );
 
+  const RewardsScreen = () => (
+    <motion.div {...pageMotion}>
+      <button onClick={() => setOverlay(null)} className="mb-5 text-[10px] text-cyan-300">← Back to AIONEX</button>
+      <SectionTitle eyebrow="Season 03 vault" title="Rewards center" />
+      <Glass className="relative overflow-hidden p-5"><div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-amber-300/15 blur-3xl"/><div className="relative flex items-center gap-4"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-200 to-orange-500 text-slate-950"><Gift size={27}/></div><div className="flex-1"><p className="text-[9px] uppercase tracking-widest text-amber-300">Daily reward</p><h2 className="mt-1 text-lg font-bold">Keep the streak alive</h2><p className="mt-1 text-[10px] text-slate-500">Current streak: {profile?.loginStreak || 0} days</p></div></div><button onClick={()=>void action("/api/rewards/check-in","checkin")} className="mt-5 w-full rounded-2xl bg-white py-3 text-xs font-black text-slate-950">Claim daily reward</button></Glass>
+      <div className="mt-3 grid grid-cols-2 gap-3"><Glass className="relative overflow-hidden p-4 text-center"><motion.div animate={{rotate:360}} transition={{duration:12,repeat:Infinity,ease:"linear"}} className="mx-auto grid h-16 w-16 place-items-center rounded-full border-4 border-dashed border-violet-300/40"><Star size={24} className="text-violet-300"/></motion.div><p className="mt-3 text-sm font-semibold">Lucky Spin</p><p className="mt-1 text-[9px] text-slate-500">Season reward · Soon</p></Glass><Glass className="p-4 text-center"><motion.div animate={{y:[0,-5,0]}} transition={{duration:2,repeat:Infinity}} className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300/20 to-violet-500/20"><Gift size={27} className="text-cyan-300"/></motion.div><p className="mt-3 text-sm font-semibold">Mystery Box</p><p className="mt-1 text-[9px] text-slate-500">Unlock at level 5</p></Glass></div>
+      <section className="mt-6"><SectionTitle title="Special rewards"/><Glass className="divide-y divide-white/[.05] px-4">{[{icon:Trophy,title:"Top miner bonus",copy:"Finish the season in the top 100"},{icon:Users,title:"Referral champion",copy:"Invite 25 verified explorers"},{icon:Award,title:"Mission master",copy:"Complete every special mission"}].map(({icon:Icon,title,copy})=><div key={title} className="flex items-center py-4"><div className="grid h-9 w-9 place-items-center rounded-xl bg-violet-400/10"><Icon size={16} className="text-violet-300"/></div><div className="ml-3 flex-1"><p className="text-xs font-semibold">{title}</p><p className="mt-1 text-[9px] text-slate-500">{copy}</p></div><LockKeyhole size={14} className="text-slate-700"/></div>)}</Glass></section>
+    </motion.div>
+  );
+
   const ProfileScreen = () => (
     <motion.div {...pageMotion}>
       <div className="flex flex-col items-center pt-3">
@@ -1499,7 +1489,7 @@ export function RewardsDashboard({
       </section>
       <div className="mt-7 space-y-2">
         <button
-          onClick={() => setOverlay("wallet")}
+          onClick={() => go("wallet")}
           className="flex w-full items-center rounded-2xl border border-white/[.07] bg-white/[.03] p-4 text-left"
         >
           <WalletCards size={18} className="text-cyan-300" />
@@ -1514,6 +1504,7 @@ export function RewardsDashboard({
           <span className="ml-3 flex-1 text-xs">Global leaderboard</span>
           <ChevronRight size={15} className="text-slate-600" />
         </button>
+        <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="flex w-full items-center rounded-2xl border border-white/[.07] bg-white/[.03] p-4 text-left"><Sparkles size={18} className="text-amber-300"/><span className="ml-3 flex-1 text-xs">Appearance</span><span className="text-[9px] capitalize text-slate-500">{theme} mode</span></button>
       </div>
     </motion.div>
   );
@@ -1521,7 +1512,7 @@ export function RewardsDashboard({
   const WalletOverlay = () => (
     <motion.div {...pageMotion}>
       <button
-        onClick={() => setOverlay(null)}
+        onClick={() => go("home")}
         className="mb-5 text-[10px] text-cyan-300"
       >
         ← Back to AIONEX
@@ -1689,7 +1680,7 @@ export function RewardsDashboard({
     mine: <MineScreen />,
     tasks: <TasksScreen />,
     invite: <InviteScreen />,
-    ai: <AiScreen />,
+    wallet: <WalletOverlay />,
     profile: <ProfileScreen />,
   };
   if (splash)
@@ -1705,7 +1696,7 @@ export function RewardsDashboard({
       </div>
     );
   return (
-    <main className="mini-app min-h-dvh overflow-x-hidden bg-[#03050c] text-white">
+    <main className={`mini-app ${theme === "light" ? "light" : ""} min-h-dvh overflow-x-hidden bg-[#03050c] text-white`}>
       <div className="mini-particles pointer-events-none fixed inset-0 opacity-50" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(14,165,233,.1),transparent_30%),radial-gradient(circle_at_100%_45%,rgba(124,58,237,.09),transparent_35%)]" />
       <div className="relative mx-auto min-h-dvh w-full max-w-[480px] px-5 pb-28 pt-[max(20px,env(safe-area-inset-top))]">
@@ -1720,8 +1711,10 @@ export function RewardsDashboard({
           </motion.button>
         )}
         <AnimatePresence mode="wait">
-          {overlay === "wallet" ? (
-            <WalletOverlay key="wallet" />
+          {overlay === "ai" ? (
+            <AiScreen key="ai" />
+          ) : overlay === "rewards" ? (
+            <RewardsScreen key="rewards" />
           ) : overlay === "leaderboard" ? (
             <LeaderboardOverlay key="leaderboard" />
           ) : (

@@ -83,6 +83,64 @@ export async function referralLeaderboard(limit = 20) { return sql()`SELECT u.id
 export async function rewardHistory(userId: string, limit = 50) { return sql()`SELECT id,amount,xp_awarded,reason,metadata,created_at FROM reward_point_ledger WHERE user_id=${userId}::uuid ORDER BY created_at DESC LIMIT ${Math.min(limit,100)}`; }
 export async function miningStats(userId: string): Promise<{claims:number;earned:number;last_claim:string|null;cooldown_hours:number}> { const rows=await sql()`SELECT COUNT(*)::int AS claims,COALESCE(SUM(amount),0) AS earned,MAX(created_at) AS last_claim FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining'`; const cooldown=await rewardSetting("mining_cooldown_hours",24); return {claims:Number(rows[0]?.claims||0),earned:Number(rows[0]?.earned||0),last_claim:rows[0]?.last_claim?String(rows[0].last_claim):null,cooldown_hours:cooldown}; }
 
+export async function miningStatus(userId: string) {
+  const [stats, sessions] = await Promise.all([
+    miningStats(userId),
+    sql()`SELECT id,status,started_at,ends_at,stopped_at,duration_seconds,awarded_axp,awarded_xp
+      FROM reward_mining_sessions WHERE user_id=${userId}::uuid ORDER BY started_at DESC LIMIT 20`,
+  ]);
+  const session = sessions.find((row) => row.status === "active") || null;
+  return {
+    stats: { claims: stats.claims, earned: stats.earned, lastClaim: stats.last_claim ? new Date(stats.last_claim).toISOString() : null, cooldownHours: stats.cooldown_hours },
+    session: session ? miningSessionDto(session) : null,
+    history: sessions.filter((row) => row.status !== "active").map(miningSessionDto),
+    serverTime: new Date().toISOString(),
+  };
+}
+
+function miningSessionDto(row: Record<string, unknown>) {
+  return {
+    id: String(row.id), status: String(row.status), startedAt: new Date(String(row.started_at)).toISOString(),
+    endsAt: new Date(String(row.ends_at)).toISOString(), stoppedAt: row.stopped_at ? new Date(String(row.stopped_at)).toISOString() : null,
+    durationSeconds: row.duration_seconds === null ? null : Number(row.duration_seconds), awardedAxp: Number(row.awarded_axp || 0), awardedXp: Number(row.awarded_xp || 0),
+  };
+}
+
+export async function startMiningSession(userId: string) {
+  const minutes = Math.max(1, Math.min(1440, await rewardSetting("mining_session_minutes", 60)));
+  const existing = await sql()`SELECT * FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' LIMIT 1`;
+  if (existing[0]) return { ok: false as const, error: "Mining is already active.", session: miningSessionDto(existing[0]) };
+  const rows = await sql()`INSERT INTO reward_mining_sessions(user_id,ends_at)
+    SELECT id,NOW()+make_interval(mins => ${minutes}) FROM reward_users
+    WHERE id=${userId}::uuid AND status='active'
+    AND (last_mined_at IS NULL OR last_mined_at<=NOW()-make_interval(hours => ${await rewardSetting("mining_cooldown_hours",24)}))
+    ON CONFLICT DO NOTHING RETURNING *`;
+  return rows[0] ? { ok: true as const, session: miningSessionDto(rows[0]) } : { ok: false as const, error: "Mining cooldown is still active.", session: null };
+}
+
+export async function stopMiningSession(userId: string) {
+  const active = await sql()`SELECT * FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' FOR UPDATE`;
+  if (!active[0]) return { ok: false as const, error: "No active mining session." };
+  const row = active[0], total = Math.max(1, (new Date(String(row.ends_at)).getTime()-new Date(String(row.started_at)).getTime())/1000);
+  const elapsed = Math.max(0, Math.min(total, (Date.now()-new Date(String(row.started_at)).getTime())/1000));
+  if (elapsed < 60) return { ok: false as const, error: "Mine for at least one minute before stopping." };
+  const base = await rewardSetting("mining_axp", Number(process.env.REWARDS_MINING_AXP || 100));
+  const baseXp = await rewardSetting("mining_xp", 25), axp = Math.max(1, Math.floor(base*elapsed/total)), xp = Math.max(1, Math.floor(baseXp*elapsed/total));
+  const key = `mining-session:${row.id}`;
+  const completed = await sql()`WITH closed AS (
+      UPDATE reward_mining_sessions SET status='completed',stopped_at=NOW(),duration_seconds=${Math.floor(elapsed)},awarded_axp=${axp},awarded_xp=${xp},updated_at=NOW()
+      WHERE id=${row.id}::uuid AND status='active' RETURNING *
+    ), ledger AS (
+      INSERT INTO reward_point_ledger(user_id,amount,xp_awarded,reason,reference_id,idempotency_key,metadata)
+      SELECT user_id,${axp},${xp},'mining',id,${key},jsonb_build_object('durationSeconds',${Math.floor(elapsed)}) FROM closed
+      ON CONFLICT(idempotency_key) DO NOTHING RETURNING user_id,amount,xp_awarded
+    ) UPDATE reward_users u SET last_mined_at=NOW(),updated_at=NOW(),axp_balance=u.axp_balance+l.amount,lifetime_axp=u.lifetime_axp+l.amount,xp=u.xp+l.xp_awarded,level=1+FLOOR((u.xp+l.xp_awarded)/500.0)::int
+      FROM ledger l WHERE u.id=l.user_id RETURNING (SELECT row_to_json(closed) FROM closed) AS session`;
+  if (!completed[0]?.session) return { ok: false as const, error: "Mining session was already completed." };
+  await evaluateBadges(userId);
+  return { ok: true as const, session: miningSessionDto(completed[0].session as Record<string, unknown>) };
+}
+
 export async function createLinkCode(userId: string) {
   const code = randomBytes(12).toString("base64url");
   await sql()`INSERT INTO reward_link_codes(code,user_id,expires_at) VALUES(${code},${userId}::uuid,NOW()+INTERVAL '15 minutes')`;

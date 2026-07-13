@@ -29,7 +29,7 @@ import {
   Zap,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { WalletControls } from "@/app/components/wallet-controls";
 import type { RewardProfile, RewardTask } from "@/lib/rewards/types";
@@ -94,25 +94,20 @@ const taskFilters = [
   "Verification",
 ] as const;
 const pageMotion = {
-  initial: { opacity: 0, y: 18, filter: "blur(8px)" },
-  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-  exit: { opacity: 0, y: -12, filter: "blur(6px)" },
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
   transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
 };
+const particleVectors = Array.from({length:14},(_,i)=>({x:(i%2?1:-1)*(42+(i*17)%88),y:-72-(i*31)%142}));
 
 function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const dim = size === "lg" ? 112 : size === "sm" ? 38 : 48;
   return (
     <motion.div
-      animate={{
-        filter: [
-          "drop-shadow(0 0 10px #27d8ff66)",
-          "drop-shadow(0 0 28px #8b5cf699)",
-          "drop-shadow(0 0 10px #27d8ff66)",
-        ],
-      }}
+      animate={{ scale: [1, 1.025, 1] }}
       transition={{ duration: 3, repeat: Infinity }}
-      className="relative grid shrink-0 place-items-center"
+      className="relative grid shrink-0 place-items-center [transform:translateZ(0)]"
       style={{ width: dim, height: dim }}
     >
       <motion.div
@@ -209,6 +204,19 @@ function EmptyState({
   );
 }
 
+const AnimatedNumber = memo(function AnimatedNumber({value,className=""}:{value:number;className?:string}){
+  const [shown,setShown]=useState(0);const previous=useRef(0);
+  useEffect(()=>{const from=previous.current,to=value;if(from===to)return;let frame=0,cancelled=false;const distance=Math.abs(to-from),step=distance<=240?1:Math.max(1,Math.ceil(distance/72));const direction=to>from?1:-1;const tick=()=>{if(cancelled)return;frame+=1;const next=from+direction*Math.min(distance,frame*step);setShown(next);if(next!==to)requestAnimationFrame(tick);else previous.current=to};requestAnimationFrame(tick);return()=>{cancelled=true}},[value]);
+  return <span className={className}>{Math.round(shown).toLocaleString()}</span>;
+});
+
+const Countdown = memo(function Countdown({until,onReady,className=""}:{until:number;onReady:()=>void;className?:string}){
+  const [remaining,setRemaining]=useState(()=>Math.max(0,until-Date.now()));
+  useEffect(()=>{const tick=()=>{const next=Math.max(0,until-Date.now());setRemaining(next);if(next===0)onReady()};tick();const id=setInterval(tick,1000);return()=>clearInterval(id)},[until,onReady]);
+  const seconds=Math.ceil(remaining/1000);const label=remaining===0?"READY":`${String(Math.floor(seconds/3600)).padStart(2,"0")}:${String(Math.floor(seconds%3600/60)).padStart(2,"0")}:${String(seconds%60).padStart(2,"0")}`;
+  return <span className={className}>{label}</span>;
+});
+
 function Splash({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const id = setTimeout(onDone, 2400);
@@ -216,7 +224,7 @@ function Splash({ onDone }: { onDone: () => void }) {
   }, [onDone]);
   return (
     <motion.div
-      exit={{ opacity: 0, scale: 1.08, filter: "blur(18px)" }}
+      exit={{ opacity: 0, scale: 1.04 }}
       transition={{ duration: 0.7 }}
       className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-[#02040b]"
     >
@@ -294,7 +302,7 @@ function StatPill({
 }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
-  value: string;
+  value: React.ReactNode;
   color?: "cyan" | "violet" | "amber";
 }) {
   const tone =
@@ -349,7 +357,7 @@ export function RewardsDashboard({
   const [message, setMessage] = useState(""),
     [busy, setBusy] = useState(""),
     [taskFilter, setTaskFilter] = useState<(typeof taskFilters)[number]>("All"),
-    [now, setNow] = useState(Date.now()),
+    [mineReady, setMineReady] = useState(() => !initialProfile?.lastMinedAt || new Date(initialProfile.lastMinedAt).getTime() + 86400000 <= Date.now()),
     [burst, setBurst] = useState(0);
   const [chat, setChat] = useState<ChatMessage[]>([
       {
@@ -439,21 +447,14 @@ export function RewardsDashboard({
         JSON.stringify(chat.slice(-30)),
       );
   }, [chat]);
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
   useEffect(
-    () => chatEnd.current?.scrollIntoView({ behavior: "smooth" }),
+    () => chatEnd.current?.scrollIntoView({ behavior: "auto", block: "end" }),
     [chat],
   );
-  const nextMine = profile?.lastMinedAt
-    ? Math.max(0, new Date(profile.lastMinedAt).getTime() + 86400000 - now)
-    : 0;
-  const countdown = useMemo(() => {
-    const s = Math.ceil(nextMine / 1000);
-    return `${String(Math.floor(s / 3600)).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-  }, [nextMine]);
+  const mineUntil=profile?.lastMinedAt?new Date(profile.lastMinedAt).getTime()+86400000:0;
+  const nextMine=!mineReady&&mineUntil>Date.now();
+  const markMineReady=useCallback(()=>setMineReady(true),[]);
+  useEffect(()=>setMineReady(!mineUntil||mineUntil<=Date.now()),[mineUntil]);
   const referralLink = `https://t.me/${process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "AIONEXAIBot"}?start=ref_${profile?.referralCode || "AIONEX"}`;
 
   async function action(path: string, key: string) {
@@ -584,9 +585,11 @@ export function RewardsDashboard({
     }
   }
   function go(id: NavId) {
+    if(active===id&&!overlay)return;
+    (window as typeof window&{Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
     setOverlay(null);
     setActive(id);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo(0,0);
   }
 
   const filteredTasks = tasks.filter((task) => {
@@ -683,7 +686,7 @@ export function RewardsDashboard({
             animate={{ scale: 1, opacity: 1 }}
             className="mt-3 text-4xl font-black tracking-[-.05em]"
           >
-            {profile?.axpBalance.toLocaleString() || "0"}
+            <AnimatedNumber value={profile?.axpBalance || 0}/>
             <span className="ml-2 text-sm font-semibold text-cyan-300">
               AXP
             </span>
@@ -691,7 +694,7 @@ export function RewardsDashboard({
           <div className="mt-5 grid grid-cols-3 gap-3 border-t border-white/[.07] pt-4">
             <div>
               <p className="text-[9px] text-slate-500">XP</p>
-              <p className="mt-1 text-sm font-semibold">{profile?.xp || 0}</p>
+              <p className="mt-1 text-sm font-semibold"><AnimatedNumber value={profile?.xp || 0}/></p>
             </div>
             <div>
               <p className="text-[9px] text-slate-500">Level</p>
@@ -713,12 +716,14 @@ export function RewardsDashboard({
           <StatPill
             icon={Pickaxe}
             label="Mining"
-            value={nextMine ? countdown : "Ready to claim"}
+            value={nextMine ? <Countdown until={mineUntil} onReady={markMineReady}/> : "Ready to claim"}
           />
           <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/5">
             <motion.div
               className="h-full bg-gradient-to-r from-cyan-300 to-blue-500"
-              animate={{ width: nextMine ? "42%" : "100%" }}
+              initial={{scaleX:0}}
+              animate={{ scaleX: nextMine ? .42 : 1 }}
+              style={{transformOrigin:"left"}}
             />
           </div>
         </Glass>
@@ -929,14 +934,14 @@ export function RewardsDashboard({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(34,211,238,.13),transparent_34%),radial-gradient(circle_at_50%_48%,rgba(124,58,237,.12),transparent_52%)]" />
         <AnimatePresence>
           {burst > 0 &&
-            [...Array(14)].map((_, i) => (
+            particleVectors.map((vector, i) => (
               <motion.span
                 key={`${burst}-${i}`}
                 initial={{ opacity: 1, x: 0, y: 0, scale: 0.5 }}
                 animate={{
                   opacity: 0,
-                  x: (i % 2 ? 1 : -1) * (35 + Math.random() * 100),
-                  y: -60 - Math.random() * 170,
+                  x: vector.x,
+                  y: vector.y,
                   scale: 1.2,
                 }}
                 exit={{ opacity: 0 }}
@@ -957,8 +962,9 @@ export function RewardsDashboard({
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
               <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                style={{transformOrigin:"left"}}
                 className="h-full bg-gradient-to-r from-amber-300 to-cyan-300"
               />
             </div>
@@ -975,7 +981,7 @@ export function RewardsDashboard({
               className="absolute inset-8 rounded-full bg-cyan-400/10 blur-xl"
             />
             <motion.button
-              disabled={!profile || nextMine > 0 || busy === "mine"}
+              disabled={!profile || nextMine || busy === "mine"}
               onClick={() => void action("/api/rewards/mine", "mine")}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.91 }}
@@ -987,7 +993,7 @@ export function RewardsDashboard({
                   <span className="mt-2 block text-sm font-black uppercase tracking-[.18em]">
                     {busy === "mine"
                       ? "Mining"
-                      : nextMine > 0
+                      : nextMine
                         ? "Cooling"
                         : "Claim"}
                   </span>
@@ -1002,7 +1008,7 @@ export function RewardsDashboard({
             Next mining window
           </p>
           <p className="mt-2 font-mono text-3xl font-bold tracking-wider">
-            {nextMine ? countdown : "READY"}
+            {nextMine ? <Countdown until={mineUntil} onReady={markMineReady}/> : "READY"}
           </p>
           <p className="mt-3 text-xs text-slate-500">
             Secure your daily AXP and advance your mining streak.
@@ -1134,7 +1140,7 @@ export function RewardsDashboard({
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/5">
-                      <motion.div initial={{ width: 0 }} animate={{ width: task.completed ? "100%" : task.claimStatus === "pending" ? "65%" : "12%" }} className={`h-full ${task.completed ? "bg-emerald-400" : task.claimStatus === "pending" ? "bg-amber-300" : "bg-gradient-to-r from-cyan-300 to-violet-500"}`} />
+                      <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: task.completed ? 1 : task.claimStatus === "pending" ? .65 : .12 }} style={{transformOrigin:"left"}} className={`h-full ${task.completed ? "bg-emerald-400" : task.claimStatus === "pending" ? "bg-amber-300" : "bg-gradient-to-r from-cyan-300 to-violet-500"}`} />
                     </div>
                     <span className="text-[8px] text-slate-500">{task.completed ? "100%" : task.claimStatus === "pending" ? "65%" : "0%"}</span>
                   </div>
@@ -1415,15 +1421,16 @@ export function RewardsDashboard({
         <div className="flex justify-between text-[10px]">
           <span>Level progress</span>
           <span className="text-cyan-300">
-            {profile?.xp || 0} / {(profile?.level || 1) * 500} XP
+            <AnimatedNumber value={profile?.xp || 0}/> / {(profile?.level || 1) * 500} XP
           </span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/5">
           <motion.div
-            initial={{ width: 0 }}
+            initial={{ scaleX: 0 }}
             animate={{
-              width: `${Math.min(100, ((profile?.xp || 0) % 500) / 5)}%`,
+              scaleX: Math.min(1, ((profile?.xp || 0) % 500) / 500),
             }}
+            style={{transformOrigin:"left"}}
             className="h-full bg-gradient-to-r from-cyan-300 to-violet-500"
           />
         </div>
@@ -1433,7 +1440,7 @@ export function RewardsDashboard({
           <StatPill
             icon={Coins}
             label="Lifetime AXP"
-            value={(profile?.lifetimeAxp || 0).toLocaleString()}
+            value={<AnimatedNumber value={profile?.lifetimeAxp || 0}/>}
           />
         </Glass>
         <Glass className="p-4">
@@ -1732,7 +1739,6 @@ export function RewardsDashboard({
             >
               {active === id && !overlay && (
                 <motion.span
-                  layoutId="nav-glow"
                   className="absolute -top-2 h-[2px] w-8 rounded-full bg-cyan-300 shadow-[0_0_12px_#22d3ee]"
                 />
               )}

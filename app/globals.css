@@ -28,12 +28,21 @@ html { scroll-behavior: smooth; }
 }
 
 .mini-app.light {
-  filter: invert(.91) hue-rotate(175deg);
+  color-scheme: light;
+  background: #eaf1fb !important;
+  color: #08111f !important;
 }
-.mini-app.light img,
-.mini-app.light video,
-.mini-app.light canvas {
-  filter: invert(1) hue-rotate(185deg);
+.mini-app.light nav { background: rgba(235, 243, 255, .92) !important; }
+.mini-app.light .text-white { color: #08111f !important; }
+.mini-app button {
+  touch-action: manipulation;
+  translate: 0 0;
+  backface-visibility: hidden;
+  transition: scale 120ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+.mini-app button:active {
+  scale: .975;
+  box-shadow: 0 0 22px rgba(34, 211, 238, .16);
 }
 
 .mini-particles {

@@ -23,6 +23,7 @@ jobs:
           ENDPOINT: https://aionex-ai.vercel.app/api/cron/automation
         run: |
           set -o pipefail
+          test -n "${CRON_SECRET}"
           : > automation.log
           for attempt in 1 2; do
             status=$(curl --silent --show-error --max-time 310 \
@@ -48,4 +49,3 @@ jobs:
             automation.log
             response.json
           retention-days: 14
-

@@ -335,7 +335,7 @@ export function RewardsDashboard({
   initialTasks: RewardTask[];
   initialLeaders: Leader[];
 }) {
-  const [splash, setSplash] = useState(true),
+  const [splash, setSplash] = useState(false),
     [entered, setEntered] = useState(false),
     [theme, setTheme] = useState<"dark" | "light">("dark"),
     [active, setActive] = useState<NavId>("home"),
@@ -373,6 +373,7 @@ export function RewardsDashboard({
   const account = useAccount(),
     { signMessageAsync } = useSignMessage();
   const chatEnd = useRef<HTMLDivElement>(null);
+  const telegramAuthAttempted = useRef(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -420,20 +421,19 @@ export function RewardsDashboard({
     webApp?.expand?.();
     webApp?.setHeaderColor?.("#02050d");
     webApp?.setBackgroundColor?.("#02050d");
-    if (
-      !initialProfile &&
-      webApp?.initData &&
-      !sessionStorage.getItem("aionex-auth")
-    ) {
-      sessionStorage.setItem("aionex-auth", "1");
+    if (!initialProfile && webApp?.initData && !telegramAuthAttempted.current) {
+      telegramAuthAttempted.current = true;
       void fetch("/api/rewards/auth/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ initData: webApp.initData }),
-      }).then((r) => {
-        if (r.ok) location.reload();
-        else sessionStorage.removeItem("aionex-auth");
-      });
+      }).then(async (response) => {
+        if (response.ok) await refresh();
+        else {
+          const body = await response.json().catch(() => ({})) as { error?: string };
+          setMessage(body.error || "Telegram authentication failed. Reopen the Mini App and try again.");
+        }
+      }).catch(() => setMessage("Telegram authentication is temporarily unavailable."));
     }
     void fetch("/api/market-news")
       .then((r) => r.json())
@@ -981,8 +981,8 @@ export function RewardsDashboard({
               className="absolute inset-8 rounded-full bg-cyan-400/10 blur-xl"
             />
             <motion.button
-              disabled={!profile || nextMine || busy === "mine"}
-              onClick={() => void action("/api/rewards/mine", "mine")}
+              disabled={!profile}
+              onClick={() => window.location.assign("/mining")}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.91 }}
               className="relative grid h-40 w-40 place-items-center rounded-full border border-cyan-200/30 bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-600 p-[2px] shadow-[0_0_60px_rgba(34,211,238,.28)] disabled:saturate-50"
@@ -991,27 +991,23 @@ export function RewardsDashboard({
                 <span>
                   <Pickaxe className="mx-auto text-cyan-200" size={38} />
                   <span className="mt-2 block text-sm font-black uppercase tracking-[.18em]">
-                    {busy === "mine"
-                      ? "Mining"
-                      : nextMine
-                        ? "Cooling"
-                        : "Claim"}
+                    {nextMine ? "View" : "Start"}
                   </span>
                   <span className="mt-1 block text-[9px] text-violet-300">
-                    +100 AXP · +25 XP
+                    Server-validated session
                   </span>
                 </span>
               </span>
             </motion.button>
           </div>
           <p className="text-[10px] uppercase tracking-[.22em] text-slate-500">
-            Next mining window
+            Secure mining status
           </p>
           <p className="mt-2 font-mono text-3xl font-bold tracking-wider">
             {nextMine ? <Countdown until={mineUntil} onReady={markMineReady}/> : "READY"}
           </p>
           <p className="mt-3 text-xs text-slate-500">
-            Secure your daily AXP and advance your mining streak.
+            Open the live miner to start, stop, and follow rewards in real time.
           </p>
           <div className="mt-7 grid w-full grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/[.035] p-3">

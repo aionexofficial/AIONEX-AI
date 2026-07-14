@@ -1,5 +1,6 @@
 import "server-only";
 import { OFFICIAL_LINKS } from "@/lib/social/config";
+import { parseOpenAIJsonText } from "./openai";
 
 type Generated = { title: string; excerpt: string; body: string; socialText: string };
 
@@ -19,7 +20,7 @@ export async function generateDailyPost(day: string): Promise<Generated & { slug
   }) });
   if (!response.ok) throw new Error(`OpenAI generation failed (${response.status}): ${(await response.text()).slice(0, 300)}`);
   const payload = await response.json() as { output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }> };
-  const text = payload.output_text || payload.output?.flatMap((item) => item.content || []).find((item) => item.type === "output_text")?.text;
+  const text = parseOpenAIJsonText(payload);
   if (!text) throw new Error("OpenAI returned no post content.");
   const result = JSON.parse(text) as Generated;
   if (!result.title || !result.excerpt || !result.body || !result.socialText) throw new Error("OpenAI returned an incomplete post.");

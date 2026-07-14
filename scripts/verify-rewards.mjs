@@ -1,5 +1,8 @@
 import { createHmac, randomBytes } from "node:crypto";
+import { loadEnvFile } from "node:process";
 import { neon } from "@neondatabase/serverless";
+
+try { loadEnvFile(".env.local"); } catch {}
 
 const databaseUrl = process.env.DATABASE_URL;
 const authSecret = process.env.AUTH_SECRET;
@@ -25,7 +28,7 @@ async function request(path, options = {}) {
 
 try {
   const migrations = await sql`SELECT filename FROM schema_migrations ORDER BY filename`;
-  const requiredTables = ["automation_posts","reward_users","reward_identities","reward_tasks","reward_task_claims","reward_point_ledger","reward_badges","reward_user_badges","reward_link_codes","reward_anti_cheat_events","reward_settings","reward_social_settings","reward_social_verifications","reward_social_verification_history","schema_migrations"];
+  const requiredTables = ["automation_posts","reward_users","reward_identities","reward_tasks","reward_task_claims","reward_point_ledger","reward_badges","reward_user_badges","reward_link_codes","reward_anti_cheat_events","reward_settings","reward_social_settings","reward_social_verifications","reward_social_verification_history","reward_mining_sessions","user_auth_accounts","user_auth_sessions","schema_migrations"];
   const tables = await sql`SELECT table_name FROM information_schema.tables WHERE table_schema='public'`;
   const tableNames = new Set(tables.map((row) => row.table_name));
   if (!requiredTables.every((table) => tableNames.has(table))) throw new Error("Required database tables are missing.");
@@ -38,8 +41,11 @@ try {
   taskId = String(task[0].id);
   const headers = { Cookie: rewardCookie(userId), Origin: "http://localhost:3000", "Content-Type": "application/json" };
 
-  const mine1 = await request("/api/rewards/mine", { method: "POST", headers, body: "{}" });
-  const mine2 = await request("/api/rewards/mine", { method: "POST", headers, body: "{}" });
+  const mine1 = await request("/api/rewards/mining/start", { method: "POST", headers, body: "{}" });
+  const mine2 = await request("/api/rewards/mining/start", { method: "POST", headers, body: "{}" });
+  await sql`UPDATE reward_mining_sessions SET started_at=NOW()-INTERVAL '2 minutes' WHERE user_id=${userId}::uuid AND status='active'`;
+  const mineStop1 = await request("/api/rewards/mining/stop", { method: "POST", headers, body: "{}" });
+  const mineStop2 = await request("/api/rewards/mining/stop", { method: "POST", headers, body: "{}" });
   const login1 = await request("/api/rewards/check-in", { method: "POST", headers, body: "{}" });
   const login2 = await request("/api/rewards/check-in", { method: "POST", headers, body: "{}" });
   const referral = await request("/api/rewards/referral", { method: "POST", headers, body: JSON.stringify({ code: referrer[0].referral_code }) });
@@ -59,9 +65,9 @@ try {
   if (telegramIdentity[0]) createdUsers.push(String(telegramIdentity[0].user_id));
 
   const checks = {
-    migrations: migrations.length >= 5,
+    migrations: migrations.length >= 11,
     schema: true,
-    mining: mine1.status === 200 && mine2.status === 409,
+    mining: mine1.status === 200 && mine2.status === 409 && mineStop1.status === 200 && mineStop2.status === 409,
     dailyLogin: login1.status === 200 && login2.status === 409,
     referral: referral.status === 200,
     taskEngine: claim1.status === 201 && claim2.status === 409,
@@ -71,7 +77,7 @@ try {
   };
   for (const [name, passed] of Object.entries(checks)) console.log(`${name}: ${passed ? "PASS" : "FAIL"}`);
   if (Object.values(checks).some((passed) => !passed)) {
-    for (const [name, result] of Object.entries({ mine1, mine2, login1, login2, referral, claim1, claim2, me, leaders, telegramAuth })) {
+    for (const [name, result] of Object.entries({ mine1, mine2, mineStop1, mineStop2, login1, login2, referral, claim1, claim2, me, leaders, telegramAuth })) {
       console.log(`${name}: HTTP ${result.status}${result.body?.error ? ` - ${String(result.body.error).slice(0, 160)}` : ""}`);
     }
     if (!checks.referral) {

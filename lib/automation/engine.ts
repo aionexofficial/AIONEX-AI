@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import { parseOpenAIJsonText } from "./openai";
 
 const db = () => { if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured."); return neon(process.env.DATABASE_URL); };
 export type JobType = "news.collect" | "market.analyze" | "content.generate" | "post.daily" | "youtube.script" | "hourly.pipeline";
@@ -27,8 +28,10 @@ async function content(payload: Record<string, unknown>) {
   const recent = await db()`SELECT title FROM generated_content ORDER BY created_at DESC LIMIT 50`;
   const response = await fetch("https://api.openai.com/v1/responses", { method:"POST", signal:AbortSignal.timeout(45000), headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"Content-Type":"application/json"}, body:JSON.stringify({model:process.env.OPENAI_AUTOMATION_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini",instructions:"Write accurate, original AIONEX educational content. Do not invent live facts, prices, partnerships, or returns. Return JSON only.",input:`Create one ${format} about ${topic}. Avoid these recent titles: ${recent.map(r=>String(r.title)).join(" | ")}.`,text:{format:{type:"json_schema",name:"content",strict:true,schema:{type:"object",additionalProperties:false,required:["title","body"],properties:{title:{type:"string"},body:{type:"string"}}}}}}) });
   if (!response.ok) throw new Error(`OpenAI returned ${response.status}`);
-  const out = await response.json() as {output_text?:string}; if (!out.output_text) throw new Error("OpenAI returned no content.");
-  const generated = JSON.parse(out.output_text) as {title:string;body:string};
+  const out = await response.json() as {output_text?:string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }>};
+  const text = parseOpenAIJsonText(out);
+  if (!text) throw new Error("OpenAI returned no content.");
+  const generated = JSON.parse(text) as {title:string;body:string};
   const hash = createHash("sha256").update(`${topic}\0${format}\0${generated.title}\0${generated.body}`).digest("hex");
   const rows = await db()`INSERT INTO generated_content(content_hash,topic,format,title,body) VALUES(${hash},${topic},${format},${generated.title},${generated.body}) ON CONFLICT(content_hash) DO NOTHING RETURNING id`;
   if (!rows[0]) throw new Error("Generated content duplicates existing content."); return { contentId: rows[0].id };

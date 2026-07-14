@@ -10,14 +10,26 @@ const referralCode = () => randomBytes(6).toString("base64url").toUpperCase();
 export async function findOrCreateIdentity(provider: "wallet" | "telegram", providerUserId: string, metadata: Record<string, unknown>, currentUserId?: string | null) {
   const db = sql();
   const existing = await db`SELECT user_id FROM reward_identities WHERE provider=${provider} AND provider_user_id=${providerUserId} LIMIT 1`;
-  if (existing[0]) return String(existing[0].user_id);
-  let userId = currentUserId;
+  let userId = existing[0] ? String(existing[0].user_id) : currentUserId;
   if (!userId) {
-    const users = await db`INSERT INTO reward_users (display_name, referral_code) VALUES (${String(metadata.username || metadata.address || "AIONEX Explorer").slice(0, 80)}, ${referralCode()}) RETURNING id`;
+    const displayName = String(metadata.firstName || metadata.username || metadata.address || "AIONEX Explorer").slice(0, 80);
+    const users = await db`INSERT INTO reward_users (display_name, referral_code) VALUES (${displayName}, ${referralCode()}) RETURNING id`;
     userId = String(users[0].id);
   }
   const linked = await db`INSERT INTO reward_identities (user_id, provider, provider_user_id, metadata) VALUES (${userId}::uuid, ${provider}, ${providerUserId}, ${JSON.stringify(metadata)}::jsonb) ON CONFLICT (provider, provider_user_id) DO UPDATE SET metadata=EXCLUDED.metadata RETURNING user_id`;
-  return String(linked[0].user_id);
+  userId = String(linked[0].user_id);
+  if (provider === "telegram") {
+    const telegramUsername = String(metadata.username || "").trim().toLowerCase();
+    const username = /^[a-z0-9_]{3,24}$/.test(telegramUsername) ? telegramUsername : null;
+    const displayName = [metadata.firstName, metadata.lastName].filter(Boolean).join(" ").trim().slice(0, 80) || username;
+    const avatar = typeof metadata.photoUrl === "string" && /^https:\/\//.test(metadata.photoUrl) ? metadata.photoUrl.slice(0, 2048) : null;
+    await db`UPDATE reward_users u SET
+      display_name=COALESCE(${displayName || null},u.display_name),
+      username=CASE WHEN ${username}::text IS NOT NULL AND NOT EXISTS(SELECT 1 FROM reward_users other WHERE LOWER(other.username)=${username} AND other.id<>u.id) THEN ${username} ELSE u.username END,
+      avatar_url=COALESCE(${avatar},u.avatar_url),last_login=NOW(),updated_at=NOW()
+      WHERE u.id=${userId}::uuid`;
+  }
+  return userId;
 }
 
 export async function getProfile(userId: string): Promise<RewardProfile | null> {
@@ -84,16 +96,22 @@ export async function rewardHistory(userId: string, limit = 50) { return sql()`S
 export async function miningStats(userId: string): Promise<{claims:number;earned:number;last_claim:string|null;cooldown_hours:number}> { const rows=await sql()`SELECT COUNT(*)::int AS claims,COALESCE(SUM(amount),0) AS earned,MAX(created_at) AS last_claim FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining'`; const cooldown=await rewardSetting("mining_cooldown_hours",24); return {claims:Number(rows[0]?.claims||0),earned:Number(rows[0]?.earned||0),last_claim:rows[0]?.last_claim?String(rows[0].last_claim):null,cooldown_hours:cooldown}; }
 
 export async function miningStatus(userId: string) {
-  const [stats, sessions] = await Promise.all([
+  const expired = await sql()`SELECT 1 FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' AND ends_at<=NOW() LIMIT 1`;
+  if (expired[0]) await stopMiningSession(userId);
+  const [stats, sessions, sessionMinutes, rewardAxp, rewardXp] = await Promise.all([
     miningStats(userId),
     sql()`SELECT id,status,started_at,ends_at,stopped_at,duration_seconds,awarded_axp,awarded_xp
       FROM reward_mining_sessions WHERE user_id=${userId}::uuid ORDER BY started_at DESC LIMIT 20`,
+    rewardSetting("mining_session_minutes", 60),
+    rewardSetting("mining_axp", Number(process.env.REWARDS_MINING_AXP || 100)),
+    rewardSetting("mining_xp", 25),
   ]);
   const session = sessions.find((row) => row.status === "active") || null;
   return {
     stats: { claims: stats.claims, earned: stats.earned, lastClaim: stats.last_claim ? new Date(stats.last_claim).toISOString() : null, cooldownHours: stats.cooldown_hours },
     session: session ? miningSessionDto(session) : null,
     history: sessions.filter((row) => row.status !== "active").map(miningSessionDto),
+    rewards: { axp: rewardAxp, xp: rewardXp, sessionMinutes },
     serverTime: new Date().toISOString(),
   };
 }
@@ -108,6 +126,8 @@ function miningSessionDto(row: Record<string, unknown>) {
 
 export async function startMiningSession(userId: string) {
   const minutes = Math.max(1, Math.min(1440, await rewardSetting("mining_session_minutes", 60)));
+  const expired = await sql()`SELECT 1 FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' AND ends_at<=NOW() LIMIT 1`;
+  if (expired[0]) await stopMiningSession(userId);
   const existing = await sql()`SELECT * FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' LIMIT 1`;
   if (existing[0]) return { ok: false as const, error: "Mining is already active.", session: miningSessionDto(existing[0]) };
   const rows = await sql()`INSERT INTO reward_mining_sessions(user_id,ends_at)
@@ -132,10 +152,12 @@ export async function stopMiningSession(userId: string) {
       WHERE id=${row.id}::uuid AND status='active' RETURNING *
     ), ledger AS (
       INSERT INTO reward_point_ledger(user_id,amount,xp_awarded,reason,reference_id,idempotency_key,metadata)
-      SELECT user_id,${axp},${xp},'mining',id,${key},jsonb_build_object('durationSeconds',${Math.floor(elapsed)}) FROM closed
+      SELECT user_id,${axp},${xp},'mining',id,${key},jsonb_build_object('durationSeconds',${Math.floor(elapsed)}::int) FROM closed
       ON CONFLICT(idempotency_key) DO NOTHING RETURNING user_id,amount,xp_awarded
-    ) UPDATE reward_users u SET last_mined_at=NOW(),updated_at=NOW(),axp_balance=u.axp_balance+l.amount,lifetime_axp=u.lifetime_axp+l.amount,xp=u.xp+l.xp_awarded,level=1+FLOOR((u.xp+l.xp_awarded)/500.0)::int
-      FROM ledger l WHERE u.id=l.user_id RETURNING (SELECT row_to_json(closed) FROM closed) AS session`;
+    ), updated AS (
+      UPDATE reward_users u SET last_mined_at=NOW(),updated_at=NOW(),axp_balance=u.axp_balance+l.amount,lifetime_axp=u.lifetime_axp+l.amount,xp=u.xp+l.xp_awarded,level=1+FLOOR((u.xp+l.xp_awarded)/500.0)::int
+      FROM ledger l WHERE u.id=l.user_id RETURNING u.id
+    ) SELECT row_to_json(closed) AS session FROM closed JOIN updated ON updated.id=closed.user_id`;
   if (!completed[0]?.session) return { ok: false as const, error: "Mining session was already completed." };
   await evaluateBadges(userId);
   return { ok: true as const, session: miningSessionDto(completed[0].session as Record<string, unknown>) };

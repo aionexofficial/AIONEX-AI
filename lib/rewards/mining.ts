@@ -14,7 +14,4 @@ export type MiningSession = {
   startedAt: string;
   endsAt: string;
   stoppedAt: string | null;
-  durationSeconds: number | null;
-  awardedAxp: number;
-  awardedXp: number;
-};
+  durationSeconds: number

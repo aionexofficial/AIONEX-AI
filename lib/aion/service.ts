@@ -3,7 +3,7 @@ import "server-only";
 import { createHmac, randomInt } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { DEFAULT_AION_ECONOMY, levelProgress, maximumAcceptedTaps, type AionEconomyConfig } from "./economy";
-import { stageForLevel } from "./stages";
+import { stageForLevel, type AionStage } from "./stages";
 import type { AionState, TapBatchInput, TapBatchResult } from "./types";
 
 const settingMap = {
@@ -44,6 +44,13 @@ async function ensureProfile(userId: string, config: AionEconomyConfig) {
     FROM reward_users WHERE id=${userId}::uuid ON CONFLICT(user_id) DO NOTHING`;
 }
 
+async function configuredStage(level: number): Promise<AionStage> {
+  const rows = await db()`SELECT key,name,min_level,max_level,description,visual_config FROM aion_character_stages WHERE enabled=TRUE AND ${level} BETWEEN min_level AND max_level ORDER BY min_level DESC LIMIT 1`;
+  if (!rows[0]) return stageForLevel(level);
+  const row = rows[0], visual = (row.visual_config || {}) as Record<string, unknown>;
+  return { key: String(row.key) as AionStage["key"], name: String(row.name), minLevel: Number(row.min_level), maxLevel: Number(row.max_level), description: String(row.description), rings: Number(visual.rings || 1), form: String(visual.body || row.key) as AionStage["form"] };
+}
+
 export async function getAionState(userId: string): Promise<AionState | null> {
   const config = await getAionEconomy();
   await ensureProfile(userId, config);
@@ -65,7 +72,7 @@ export async function getAionState(userId: string): Promise<AionState | null> {
     energy: { current: energy, maximum, regenAmount: Number(row.energy_regen_amount), regenIntervalSeconds: Number(row.energy_regen_interval_seconds), nextRegenAt },
     mining: { tapPower: Number(row.tap_power), criticalChanceBps: Number(row.critical_chance_bps), criticalMultiplierBps: Number(row.critical_multiplier_bps) },
     progression: { currentXp: progress.current, requiredXp: progress.required, totalXp: progress.total, level: progress.level },
-    stage: stageForLevel(level), economy: config,
+    stage: await configuredStage(level), economy: config,
     dialogue: energy < maximum * 0.15 ? "Energy is low. Let us recharge." : "Welcome back, Creator.",
   };
 }
@@ -82,7 +89,21 @@ export async function completeAionOnboarding(userId: string, input: { characterN
       WHERE u.id=${userId}::uuid AND u.status='active' AND NOT EXISTS(SELECT 1 FROM reward_users other WHERE LOWER(other.username)=${username} AND other.id<>u.id)
       RETURNING u.id
     ) UPDATE aion_character_profiles p SET character_name=${characterName},energy_color=${input.energyColor},eye_color=${input.energyColor},onboarding_completed=TRUE,updated_at=NOW()
-      FROM updated_user u WHERE p.user_id=u.id RETURNING p.user_id`;
+      FROM updated_user u WHERE p.user_id=u.id AND p.onboarding_completed=FALSE RETURNING p.user_id`;
+  if (!rows[0]) throw new Error("Username is unavailable.");
+  return getAionState(userId);
+}
+
+export async function updateAionProfile(userId: string, input: { characterName: string; username: string; energyColor: string; eyeColor: string; aura: string; background: string; profileFrame: string }) {
+  const characterName = input.characterName.replace(/[<>\u0000-\u001f]/g, "").replace(/\s+/g, " ").trim().slice(0, 32);
+  const username = input.username.trim().toLowerCase();
+  const colors = ["cyan", "violet", "emerald", "amber", "rose", "blue"], auras = ["core", "pulse", "quantum"], backgrounds = ["void", "nebula", "grid"], frames = ["signal", "guardian", "prime"];
+  if (characterName.length < 2 || !/^[a-z0-9_]{3,24}$/.test(username) || !colors.includes(input.energyColor) || !colors.includes(input.eyeColor) || !auras.includes(input.aura) || !backgrounds.includes(input.background) || !frames.includes(input.profileFrame)) throw new Error("Invalid AION profile.");
+  const rows = await db()`WITH updated_user AS (
+      UPDATE reward_users u SET username=${username},updated_at=NOW() WHERE u.id=${userId}::uuid AND u.status='active'
+      AND NOT EXISTS(SELECT 1 FROM reward_users other WHERE LOWER(other.username)=${username} AND other.id<>u.id) RETURNING u.id
+    ) UPDATE aion_character_profiles p SET character_name=${characterName},energy_color=${input.energyColor},eye_color=${input.eyeColor},aura=${input.aura},background=${input.background},profile_frame=${input.profileFrame},updated_at=NOW()
+      FROM updated_user u WHERE p.user_id=u.id AND p.onboarding_completed=TRUE RETURNING p.user_id`;
   if (!rows[0]) throw new Error("Username is unavailable.");
   return getAionState(userId);
 }

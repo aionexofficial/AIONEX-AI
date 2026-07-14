@@ -175,12 +175,14 @@ export async function consumeLinkCode(code: string, telegramId: string, metadata
   return findOrCreateIdentity("telegram", telegramId, metadata, String(rows[0].user_id));
 }
 
-export async function applyReferral(userId: string, code: string) {
+export async function applyReferral(userId: string, code: string, deviceHash?: string | null, ipHash?: string | null) {
   const referrerAxp = await rewardSetting("referrer_axp", Number(process.env.REWARDS_REFERRER_AXP || 100));
   const referredAxp = await rewardSetting("referred_axp", Number(process.env.REWARDS_REFERRED_AXP || 50));
   const rows = await sql()`WITH referral AS (
     SELECT u.id AS user_id,r.id AS referrer_id FROM reward_users u JOIN reward_users r ON r.referral_code=${code}
     WHERE u.id=${userId}::uuid AND u.status='active' AND u.referred_by IS NULL AND r.status='active' AND r.id<>u.id
+      AND NOT EXISTS(SELECT 1 FROM aion_referral_events existing WHERE existing.referred_user_id=u.id)
+      AND (${deviceHash||null}::text IS NULL OR NOT EXISTS(SELECT 1 FROM aion_referral_events device_event WHERE device_event.device_hash=${deviceHash||null} AND device_event.referred_user_id<>u.id))
     FOR UPDATE OF u,r
   ), ledger AS (
     INSERT INTO reward_point_ledger(user_id,amount,reason,reference_id,idempotency_key)
@@ -190,7 +192,14 @@ export async function applyReferral(userId: string, code: string) {
       (r.user_id,${referredAxp}::bigint,r.referrer_id,'referred:'||r.user_id)
     ) AS awards(user_id,amount,reference_id,idempotency_key)
     ON CONFLICT(idempotency_key) DO NOTHING
-    RETURNING user_id,amount
+    RETURNING user_id,amount,reference_id,idempotency_key
+  ), economy AS (
+    INSERT INTO aion_economy_transactions(user_id,transaction_type,axp_delta,reference_type,reference_id,idempotency_key,metadata)
+    SELECT user_id,'referral_reward',amount,'referral',reference_id,'aion:'||idempotency_key,jsonb_build_object('referralCode',${code}) FROM ledger
+    ON CONFLICT(idempotency_key) DO NOTHING RETURNING id
+  ), referral_event AS (
+    INSERT INTO aion_referral_events(referred_user_id,referrer_user_id,device_hash,ip_hash)
+    SELECT user_id,referrer_id,${deviceHash||null},${ipHash||null} FROM referral ON CONFLICT(referred_user_id) DO NOTHING RETURNING id
   ), totals AS (
     SELECT user_id,SUM(amount) AS amount FROM ledger GROUP BY user_id
   )
@@ -215,7 +224,7 @@ export async function claimTask(userId: string, taskId: string, evidence: Record
   return claims[0];
 }
 export async function taskVerificationContext(userId:string,taskId:string){const [tasks,identities]=await Promise.all([sql()`SELECT * FROM reward_tasks WHERE id=${taskId}::uuid AND enabled=TRUE LIMIT 1`,sql()`SELECT provider,provider_user_id FROM reward_identities WHERE user_id=${userId}::uuid`]);return tasks[0]?{task:tasks[0],identities}:null;}
-export async function systemTaskEligible(userId:string,category:string){if(category==="daily_login")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='daily_login' AND created_at::date=CURRENT_DATE LIMIT 1`)[0]);if(category==="daily_mining")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining' AND created_at>=NOW()-INTERVAL '24 hours' LIMIT 1`)[0]);if(category==="referral_invite")return Boolean((await sql()`SELECT 1 FROM reward_users WHERE referred_by=${userId}::uuid LIMIT 1`)[0]);return false;}
+export async function systemTaskEligible(userId:string,category:string,config:Record<string,unknown>={}){if(category==="daily_login")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='daily_login' AND created_at::date=CURRENT_DATE LIMIT 1`)[0]);if(category==="daily_mining")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining' AND created_at>=NOW()-INTERVAL '24 hours' LIMIT 1`)[0]);if(category==="referral_invite")return Boolean((await sql()`SELECT 1 FROM reward_users WHERE referred_by=${userId}::uuid LIMIT 1`)[0]);if(category==="tap_milestone"){const required=Math.max(1,Math.min(100000000,Number(config.requiredTaps||1)));return Boolean((await sql()`SELECT 1 FROM aion_character_profiles WHERE user_id=${userId}::uuid AND total_taps>=${required} LIMIT 1`)[0]);}if(category==="ai_chat"){const required=Math.max(2,Math.min(100,Number(config.requiredMessages||2)));return Boolean((await sql()`SELECT 1 FROM aion_ai_conversations c WHERE c.user_id=${userId}::uuid AND (SELECT COUNT(*) FROM aion_ai_messages m WHERE m.conversation_id=c.id)>=${required} LIMIT 1`)[0]);}if(category==="referral_milestone"){const required=Math.max(1,Math.min(10000,Number(config.requiredReferrals||1)));return Boolean((await sql()`SELECT 1 FROM reward_users WHERE referred_by=${userId}::uuid GROUP BY referred_by HAVING COUNT(*)>=${required}`)[0]);}if(category==="achievement_milestone"){const required=Math.max(1,Math.min(10000,Number(config.requiredAchievements||1)));return Boolean((await sql()`SELECT 1 FROM reward_user_badges WHERE user_id=${userId}::uuid GROUP BY user_id HAVING COUNT(*)>=${required}`)[0]);}return false;}
 export async function completePendingTask(userId:string,taskId:string,message:string){const rows=await sql()`UPDATE reward_task_claims SET status='verified',verified_at=NOW(),verification_message=${message},awarded_axp=(SELECT reward_axp FROM reward_tasks WHERE id=task_id) WHERE id=(SELECT id FROM reward_task_claims WHERE user_id=${userId}::uuid AND task_id=${taskId}::uuid AND status IN ('pending','review') ORDER BY created_at DESC LIMIT 1) RETURNING id,awarded_axp,(SELECT reward_xp FROM reward_tasks WHERE id=task_id) AS reward_xp,(SELECT category FROM reward_tasks WHERE id=task_id) AS category`;if(!rows[0])return null;await awardPoints(userId,Number(rows[0].awarded_axp),"task",String(rows[0].id),`task:${rows[0].id}`,Number(rows[0].reward_xp));const provider=socialProvider(String(rows[0].category));if(provider)await recordSocialVerification(userId,provider,String(rows[0].id),true,Number(rows[0].awarded_axp),{message});await evaluateBadges(userId);return rows[0];}
 
 export async function awardPoints(userId: string, amount: number, reason: "task" | "referral" | "achievement" | "admin_adjustment", referenceId: string, idempotencyKey: string,xpOverride?:number) {

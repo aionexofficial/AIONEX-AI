@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 const modules=[
+ {href:"/admin/aion",title:"PROJECT AION",description:"Manage evolution stages, dialogue, economy controls, suspicious tapping, and audit logs."},
  {href:"/admin/posts",title:"Publishing",description:"Review, approve, publish, and retry website, Telegram, and X posts."},
  {href:"/admin/rewards",title:"Rewards & tasks",description:"Manage tasks, AXP, XP, mining configuration, users, and risk state."},
  {href:"/admin/social",title:"Social verification",description:"Manage official links, verification statistics, completed users, and resets."},

@@ -1,4 +1,4 @@
-export const taskCategories = ["telegram_join","telegram_group_join","telegram_read_news","x_follow","x_repost","x_like","x_profile_visit","youtube_subscribe","youtube_watch","youtube_like","youtube_comment","website_visit","wallet_connect","daily_login","daily_mining","referral_invite","ai_chat","daily_quiz","special_campaign"] as const;
+export const taskCategories = ["telegram_join","telegram_group_join","telegram_read_news","x_follow","x_repost","x_like","x_profile_visit","youtube_subscribe","youtube_watch","youtube_like","youtube_comment","website_visit","wallet_connect","daily_login","daily_mining","referral_invite","ai_chat","daily_quiz","special_campaign","tap_milestone","referral_milestone","achievement_milestone","seasonal_mission"] as const;
 export type TaskCategory = typeof taskCategories[number];
 export const taskGroups = ["daily","social","mining","referral","special"] as const;
 export type TaskGroup = typeof taskGroups[number];

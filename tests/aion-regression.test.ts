@@ -4,9 +4,14 @@ import test from "node:test";
 
 test("AION migration is additive and documents non-destructive rollback", async () => {
   const migration = await readFile(new URL("../db/migrations/012_project_aion.sql", import.meta.url), "utf8");
+  const integration = await readFile(new URL("../db/migrations/013_aion_ecosystem_integration.sql", import.meta.url), "utf8");
   assert.doesNotMatch(migration, /\bDROP\s+(TABLE|COLUMN)\b/i);
+  assert.doesNotMatch(integration, /\bDROP\s+(TABLE|COLUMN)\b/i);
   assert.doesNotMatch(migration, /\bTRUNCATE\b/i);
+  assert.doesNotMatch(integration, /\bTRUNCATE\b/i);
   assert.match(migration, /ON CONFLICT\(user_id\) DO NOTHING/i);
+  assert.match(integration, /aion_referral_events/);
+  assert.match(integration, /tap_milestone/);
   const guidance = await readFile(new URL("../docs/project-aion-migration.md", import.meta.url), "utf8");
   assert.match(guidance, /Do not drop them in production/i);
 });

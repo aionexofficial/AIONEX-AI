@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable react-hooks/static-components, react-hooks/purity, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/purity, react-hooks/set-state-in-effect */
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -1699,13 +1699,13 @@ export function RewardsDashboard({
   );
 
   const screens: Record<NavId, React.ReactNode> = {
-    home: <HomeScreen />,
+    home: HomeScreen(),
     mine: <AionMining onAuthoritativeUpdate={refresh} />,
-    tasks: <TasksScreen />,
-    ai: <AiScreen />,
-    invite: <InviteScreen />,
-    wallet: <WalletOverlay />,
-    profile: <ProfileScreen />,
+    tasks: TasksScreen(),
+    ai: AiScreen(),
+    invite: InviteScreen(),
+    wallet: WalletOverlay(),
+    profile: ProfileScreen(),
   };
   void LegacyMineScreen;
   if (splash)
@@ -1737,17 +1737,7 @@ export function RewardsDashboard({
             {message}
           </motion.button>
         )}
-        <AnimatePresence mode="wait">
-          {overlay === "ai" ? (
-            <AiScreen key="ai" />
-          ) : overlay === "rewards" ? (
-            <RewardsScreen key="rewards" />
-          ) : overlay === "leaderboard" ? (
-            <LeaderboardOverlay key="leaderboard" />
-          ) : (
-            <motion.div key={active}>{screens[active]}</motion.div>
-          )}
-        </AnimatePresence>
+        {overlay === "ai" ? AiScreen() : overlay === "rewards" ? RewardsScreen() : overlay === "leaderboard" ? LeaderboardOverlay() : screens[active]}
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[480px] border-t border-white/[.08] bg-[#060a13]/90 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_rgba(0,0,0,.35)] backdrop-blur-2xl">
         <div className="grid grid-cols-6">

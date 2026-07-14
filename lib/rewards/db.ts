@@ -195,7 +195,7 @@ export async function applyReferral(userId: string, code: string, deviceHash?: s
     RETURNING user_id,amount,reference_id,idempotency_key
   ), economy AS (
     INSERT INTO aion_economy_transactions(user_id,transaction_type,axp_delta,reference_type,reference_id,idempotency_key,metadata)
-    SELECT user_id,'referral_reward',amount,'referral',reference_id,'aion:'||idempotency_key,jsonb_build_object('referralCode',${code}) FROM ledger
+    SELECT user_id,'referral_reward',amount,'referral',reference_id,'aion:'||idempotency_key,jsonb_build_object('referralCode',${code}::text) FROM ledger
     ON CONFLICT(idempotency_key) DO NOTHING RETURNING id
   ), referral_event AS (
     INSERT INTO aion_referral_events(referred_user_id,referrer_user_id,device_hash,ip_hash)

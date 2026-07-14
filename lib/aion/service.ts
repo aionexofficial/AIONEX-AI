@@ -127,7 +127,7 @@ export async function submitTapBatch(userId: string, input: TapBatchInput, reque
       SELECT ${userId}::uuid,${input.idempotencyKey},${input.sessionId},${deviceHash},${ipHash},${input.tapCount},r.accepted,${input.tapCount}-r.accepted,r.criticals,
         r.accepted*r.tap_power+r.criticals*r.tap_power*(${config.criticalMultiplierBps}-10000)/10000,r.accepted*${config.tapXp},r.accepted*${config.energyCostPerTap},${input.startedAt}::timestamptz,${input.endedAt}::timestamptz,
         CASE WHEN r.accepted=0 THEN 'rejected' WHEN r.accepted<${input.tapCount} THEN 'partial' ELSE 'accepted' END,
-        CASE WHEN r.accepted=0 THEN 'rate_or_energy' WHEN r.accepted<${input.tapCount} THEN 'partial_rate_or_energy' ELSE NULL END,${config.version},jsonb_build_object('allowedByRate',${allowedByRate}) FROM rewards r
+        CASE WHEN r.accepted=0 THEN 'rate_or_energy' WHEN r.accepted<${input.tapCount} THEN 'partial_rate_or_energy' ELSE NULL END,${config.version},jsonb_build_object('allowedByRate',${allowedByRate}::int) FROM rewards r
       ON CONFLICT(user_id,idempotency_key) DO NOTHING RETURNING *
     ), ledger AS (
       INSERT INTO reward_point_ledger(user_id,amount,xp_awarded,reason,reference_type,reference_id,idempotency_key,metadata)

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { OFFICIAL_LINKS } from "@/lib/social/config";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -26,6 +27,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );

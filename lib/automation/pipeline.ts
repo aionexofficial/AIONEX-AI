@@ -79,7 +79,14 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
           AND NOT EXISTS(SELECT 1 FROM telegram_posts t WHERE t.content_id=generated_content.id)
           AND NOT EXISTS(SELECT 1 FROM tweets t WHERE t.content_id=generated_content.id)
         RETURNING id`;
-      if(!content[0])throw new Error("This news package was already published.");
+      if(!content[0]){
+        const published=await sql`SELECT g.id,t.message_id FROM generated_content g JOIN telegram_posts t ON t.content_id=g.id AND t.status='published' WHERE g.content_hash=${hash} LIMIT 1`;
+        if(!published[0])throw new Error("This news package is already being processed.");
+        contentId=String(published[0].id);
+        const result={runId,contentId,skipped:true,reason:"duplicate_content",telegramMessageId:String(published[0].message_id||"")};
+        await sql`UPDATE pipeline_runs SET status='completed',stage='skipped',content_id=${contentId}::uuid,result=${JSON.stringify(result)}::jsonb,completed_at=NOW(),last_error=NULL,updated_at=NOW() WHERE id=${runId}::uuid`;
+        return result;
+      }
       contentId=String(content[0].id);
       await sql`UPDATE pipeline_runs SET content_id=${contentId}::uuid,stage='narration',updated_at=NOW() WHERE id=${runId}::uuid`;
     }

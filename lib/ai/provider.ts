@@ -3,8 +3,16 @@ import { LocalAionexProvider } from "./local-provider";
 import { OpenAIProvider } from "./openai-provider";
 
 export function createAssistantProvider(): AssistantProvider {
-  if (process.env.AIONEX_AI_PROVIDER === "openai" && process.env.OPENAI_API_KEY) {
-    return new OpenAIProvider(process.env.OPENAI_API_KEY, process.env.OPENAI_MODEL ?? "gpt-5");
+  const provider = process.env.AIONEX_AI_PROVIDER?.trim().toLowerCase();
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+
+  if (provider === "local") {
+    return new LocalAionexProvider();
   }
+
+  if (apiKey) {
+    return new OpenAIProvider(apiKey, process.env.OPENAI_MODEL?.trim() || "gpt-5");
+  }
+
   return new LocalAionexProvider();
 }

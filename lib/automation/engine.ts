@@ -48,5 +48,10 @@ export async function runWorker(limit = 5) {
   return { paused:false, processed:jobs.length, completed, failed };
 }
 
+export async function jobState(id: string) {
+  const rows = await db()`SELECT id,job_type,status,attempts,last_error,completed_at FROM scheduled_jobs WHERE id=${id}::uuid LIMIT 1`;
+  return rows[0] || null;
+}
+
 export async function automationStatus() { const [jobs,logs,settings]=await Promise.all([db()`SELECT status,COUNT(*)::int count FROM scheduled_jobs GROUP BY status`,db()`SELECT * FROM automation_logs ORDER BY created_at DESC LIMIT 50`,db()`SELECT value FROM automation_settings WHERE key='scheduler'`]); return {scheduler:settings[0]?.value || {paused:false},queue:Object.fromEntries(jobs.map(x=>[String(x.status),Number(x.count)])),logs}; }
 export async function setPaused(paused:boolean) { await db()`INSERT INTO automation_settings(key,value) VALUES('scheduler',${JSON.stringify({paused})}::jsonb) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=NOW()`; return {paused}; }

@@ -32,6 +32,10 @@ import { QRCodeCanvas } from "qrcode.react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { WalletControls } from "@/app/components/wallet-controls";
+import { AionMining } from "@/components/aion/aion-mining";
+import { AionOnboarding } from "@/components/aion/aion-onboarding";
+import { AionProvider } from "@/components/aion/aion-provider";
+import { AionHomeHero } from "@/components/aion/aion-home-hero";
 import type { RewardProfile, RewardTask } from "@/lib/rewards/types";
 
 type Leader = {
@@ -72,7 +76,7 @@ type ReferralLeader = {
   referrals: number;
   rank: number;
 };
-type NavId = "home" | "mine" | "tasks" | "invite" | "wallet" | "profile";
+type NavId = "home" | "mine" | "tasks" | "ai" | "invite" | "wallet" | "profile";
 type Overlay = "ai" | "rewards" | "leaderboard" | null;
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -80,8 +84,8 @@ const nav = [
   { id: "home", label: "Home", icon: Home },
   { id: "mine", label: "Mine", icon: Pickaxe },
   { id: "tasks", label: "Tasks", icon: Gift },
+  { id: "ai", label: "AION AI", icon: Bot },
   { id: "invite", label: "Invite", icon: Users },
-  { id: "wallet", label: "Wallet", icon: WalletCards },
   { id: "profile", label: "Profile", icon: CircleUserRound },
 ] as const;
 const taskFilters = [
@@ -363,11 +367,12 @@ export function RewardsDashboard({
       {
         role: "assistant",
         content:
-          "Welcome to AIONEX Intelligence. Ask me about crypto markets, your portfolio, or on-chain strategy.",
+          "I am AION, your evolving intelligence companion. Ask me about AIONEX, missions, rewards, wallets, AI, or crypto education.",
       },
     ]),
     [draft, setDraft] = useState(""),
     [aiBusy, setAiBusy] = useState(false),
+    [conversationId, setConversationId] = useState<string | null>(null),
     [leaderScope, setLeaderScope] = useState("Global"),
     [leaderPeriod, setLeaderPeriod] = useState("All time");
   const account = useAccount(),
@@ -447,6 +452,18 @@ export function RewardsDashboard({
         JSON.stringify(chat.slice(-30)),
       );
   }, [chat]);
+  const authenticatedProfileId = profile?.id;
+  useEffect(() => {
+    if (!authenticatedProfileId) return;
+    void fetch("/api/aion/conversations", { cache: "no-store" }).then(async response => {
+      if (!response.ok) return;
+      const body = await response.json() as { conversation?: { id: string; messages: ChatMessage[] } | null };
+      if (body.conversation?.messages.length) {
+        setConversationId(body.conversation.id);
+        setChat(body.conversation.messages.map(({ role, content }) => ({ role, content })));
+      }
+    }).catch(() => undefined);
+  }, [authenticatedProfileId]);
   useEffect(
     () => chatEnd.current?.scrollIntoView({ behavior: "auto", block: "end" }),
     [chat],
@@ -559,9 +576,11 @@ export function RewardsDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map(({ role, content }) => ({ role, content })),
+          conversationId,
         }),
       });
       if (!response.ok) throw new Error("AI is reconnecting");
+      setConversationId(response.headers.get("X-AION-Conversation-ID") || conversationId);
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let answer = "";
@@ -626,6 +645,7 @@ export function RewardsDashboard({
           <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[#050814] bg-emerald-400" />
         </button>
       </header>
+      <AionHomeHero onOpen={() => go("mine")} />
       <motion.section
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -921,7 +941,7 @@ export function RewardsDashboard({
     </motion.div>
   );
 
-  const MineScreen = () => (
+  const LegacyMineScreen = () => (
     <motion.div
       {...pageMotion}
       className="flex min-h-[calc(100dvh-120px)] flex-col"
@@ -1310,7 +1330,7 @@ export function RewardsDashboard({
           <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#050814] bg-emerald-400" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold">AIONEX Intelligence</h1>
+          <h1 className="text-sm font-semibold">AION · Personal Intelligence</h1>
           <p className="text-[9px] text-emerald-300">
             Online · Crypto native AI
           </p>
@@ -1680,12 +1700,14 @@ export function RewardsDashboard({
 
   const screens: Record<NavId, React.ReactNode> = {
     home: <HomeScreen />,
-    mine: <MineScreen />,
+    mine: <AionMining onAuthoritativeUpdate={refresh} />,
     tasks: <TasksScreen />,
+    ai: <AiScreen />,
     invite: <InviteScreen />,
     wallet: <WalletOverlay />,
     profile: <ProfileScreen />,
   };
+  void LegacyMineScreen;
   if (splash)
     return (
       <AnimatePresence>
@@ -1699,6 +1721,8 @@ export function RewardsDashboard({
       </div>
     );
   return (
+    <AionProvider authenticated={Boolean(profile)}>
+    <AionOnboarding />
     <main className={`mini-app ${theme === "light" ? "light" : ""} min-h-dvh overflow-x-hidden bg-[#03050c] text-white`}>
       <div className="mini-particles pointer-events-none fixed inset-0 opacity-50" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(14,165,233,.1),transparent_30%),radial-gradient(circle_at_100%_45%,rgba(124,58,237,.09),transparent_35%)]" />
@@ -1748,5 +1772,6 @@ export function RewardsDashboard({
         </div>
       </nav>
     </main>
+    </AionProvider>
   );
 }

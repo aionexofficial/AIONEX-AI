@@ -10,6 +10,7 @@ export type ChatMessage = {
 
 export type ChatRequest = {
   messages: Array<Pick<ChatMessage, "role" | "content">>;
+  conversationId?: string;
 };
 
 export type AssistantProvider = {

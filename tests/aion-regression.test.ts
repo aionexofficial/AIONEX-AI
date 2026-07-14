@@ -33,3 +33,11 @@ test("protected automation workflows and cron definitions retain duplicate prote
   assert.match(engine, /content_hash/);
   assert.match(engine, /ON CONFLICT/);
 });
+
+test("referral device protection uses a cross-account fingerprint and audited rewards", async () => {
+  const route = await readFile(new URL("../app/api/rewards/referral/route.ts", import.meta.url), "utf8");
+  const rewards = await readFile(new URL("../lib/rewards/db.ts", import.meta.url), "utf8");
+  assert.match(route, /referral-device:\$\{deviceId\}/);
+  assert.match(rewards, /aion_referral_events/);
+  assert.match(rewards, /aion_economy_transactions/);
+});

@@ -56,6 +56,18 @@ html { scroll-behavior: smooth; }
   animation: mini-drift 28s linear infinite;
 }
 
+.aion-grid {
+  background-image:
+    linear-gradient(rgba(34, 211, 238, .12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, .12) 1px, transparent 1px);
+  background-size: 34px 34px;
+  transform: perspective(240px) rotateX(62deg) scale(1.35);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(to top, #000, transparent 88%);
+}
+
+.aion-command-deck { contain: layout paint style; }
+
 @keyframes mini-drift { to { background-position: 80px 160px, -90px 120px, 130px -100px, -70px -120px, 90px 100px; } }
 
 .no-scrollbar { scrollbar-width: none; }

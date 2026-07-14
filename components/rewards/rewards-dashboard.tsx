@@ -35,7 +35,9 @@ import { WalletControls } from "@/app/components/wallet-controls";
 import { AionMining } from "@/components/aion/aion-mining";
 import { AionOnboarding } from "@/components/aion/aion-onboarding";
 import { AionProvider } from "@/components/aion/aion-provider";
-import { AionHomeHero } from "@/components/aion/aion-home-hero";
+import { AionHomeExperience } from "@/components/aion/aion-home-experience";
+import { AionAiPresence, AionEvolutionPreview } from "@/components/aion/aion-presence";
+import { Markdown } from "@/components/assistant/markdown";
 import type { RewardProfile, RewardTask } from "@/lib/rewards/types";
 
 type Leader = {
@@ -340,7 +342,6 @@ export function RewardsDashboard({
   initialLeaders: Leader[];
 }) {
   const [splash, setSplash] = useState(false),
-    [entered, setEntered] = useState(false),
     [theme, setTheme] = useState<"dark" | "light">("dark"),
     [active, setActive] = useState<NavId>("home"),
     [overlay, setOverlay] = useState<Overlay>(null);
@@ -401,7 +402,6 @@ export function RewardsDashboard({
     setLoading(false);
   }, []);
   useEffect(() => {
-    if (localStorage.getItem("aionex-onboarded")) setEntered(true);
     const saved = localStorage.getItem("aionex-ai-history");
     if (saved)
       try {
@@ -608,7 +608,6 @@ export function RewardsDashboard({
     (window as typeof window&{Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
     setOverlay(null);
     setActive(id);
-    window.scrollTo(0,0);
   }
 
   const filteredTasks = tasks.filter((task) => {
@@ -622,7 +621,7 @@ export function RewardsDashboard({
   });
   const completed = tasks.filter((t) => t.completed).length;
 
-  const HomeScreen = () => (
+  const LegacyHomeScreen = () => (
     <motion.div {...pageMotion} className="space-y-5">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -645,7 +644,7 @@ export function RewardsDashboard({
           <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[#050814] bg-emerald-400" />
         </button>
       </header>
-      <AionHomeHero onOpen={() => go("mine")} />
+      <AionHomeExperience profile={profile} tasks={tasks} busy={busy} onMine={() => go("mine")} onTasks={() => go("tasks")} onProfile={() => go("profile")} onCheckIn={() => void action("/api/rewards/check-in", "checkin")} />
       <motion.section
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1325,10 +1324,7 @@ export function RewardsDashboard({
       className="flex min-h-[calc(100dvh-120px)] flex-col"
     >
       <header className="mb-4 flex items-center gap-3">
-        <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-500 text-slate-950">
-          <Bot size={22} />
-          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#050814] bg-emerald-400" />
-        </div>
+        <AionAiPresence speaking={aiBusy} />
         <div>
           <h1 className="text-sm font-semibold">AION · Personal Intelligence</h1>
           <p className="text-[9px] text-emerald-300">
@@ -1367,7 +1363,7 @@ export function RewardsDashboard({
               <div
                 className={`max-w-[86%] rounded-2xl px-3.5 py-3 text-xs leading-5 ${item.role === "user" ? "rounded-br-md bg-gradient-to-br from-blue-500 to-violet-600 text-white" : "rounded-bl-md border border-white/[.07] bg-white/[.045] text-slate-300"}`}
               >
-                {item.content || (
+                {item.content ? <Markdown content={item.content} /> : (
                   <span className="inline-flex gap-1">
                     <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300" />
                     <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300 [animation-delay:.15s]" />
@@ -1433,6 +1429,7 @@ export function RewardsDashboard({
           Global rank #{profile?.rank || "—"} · AIONEX Citizen
         </p>
       </div>
+      <AionEvolutionPreview />
       <Glass className="mt-6 p-4">
         <div className="flex justify-between text-[10px]">
           <span>Level progress</span>
@@ -1699,7 +1696,7 @@ export function RewardsDashboard({
   );
 
   const screens: Record<NavId, React.ReactNode> = {
-    home: HomeScreen(),
+    home: <AionHomeExperience profile={profile} tasks={tasks} busy={busy} onMine={() => go("mine")} onTasks={() => go("tasks")} onProfile={() => go("profile")} onCheckIn={() => void action("/api/rewards/check-in", "checkin")} />,
     mine: <AionMining onAuthoritativeUpdate={refresh} />,
     tasks: TasksScreen(),
     ai: AiScreen(),
@@ -1707,18 +1704,14 @@ export function RewardsDashboard({
     wallet: WalletOverlay(),
     profile: ProfileScreen(),
   };
+  void Welcome;
+  void LegacyHomeScreen;
   void LegacyMineScreen;
   if (splash)
     return (
       <AnimatePresence>
         <Splash onDone={() => setSplash(false)} />
       </AnimatePresence>
-    );
-  if (!entered)
-    return (
-      <div className="mini-app min-h-dvh">
-        <Welcome onOpen={() => setEntered(true)} />
-      </div>
     );
   return (
     <AionProvider authenticated={Boolean(profile)}>
@@ -1737,7 +1730,7 @@ export function RewardsDashboard({
             {message}
           </motion.button>
         )}
-        {overlay === "ai" ? AiScreen() : overlay === "rewards" ? RewardsScreen() : overlay === "leaderboard" ? LeaderboardOverlay() : screens[active]}
+        {overlay === "ai" ? AiScreen() : overlay === "rewards" ? RewardsScreen() : overlay === "leaderboard" ? LeaderboardOverlay() : Object.entries(screens).map(([id, screen]) => <div key={id} hidden={active !== id} aria-hidden={active !== id}>{screen}</div>)}
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[480px] border-t border-white/[.08] bg-[#060a13]/90 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_rgba(0,0,0,.35)] backdrop-blur-2xl">
         <div className="grid grid-cols-6">

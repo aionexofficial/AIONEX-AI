@@ -4,6 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { parseOpenAIJsonText } from "./openai";
 import { publishTelegram, publishXThread } from "./publish";
 import { uploadYoutube } from "./youtube";
+import { deleteNarration, storeNarration } from "./audio-assets";
 
 const database=()=>{if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL is not configured.");return neon(process.env.DATABASE_URL)};
 const feeds=[
@@ -22,11 +23,11 @@ async function generate(news:News[]):Promise<Package>{if(!process.env.OPENAI_API
 async function voiceId(){if(process.env.ELEVENLABS_VOICE_ID)return process.env.ELEVENLABS_VOICE_ID;const response=await fetch("https://api.elevenlabs.io/v2/voices?page_size=10",{headers:{"xi-api-key":process.env.ELEVENLABS_API_KEY||""},signal:AbortSignal.timeout(15000)});const data=await response.json() as {voices?:Array<{voice_id:string}>};if(!response.ok||!data.voices?.[0])throw new Error("ELEVENLABS_VOICE_ID is required because no account voice could be selected.");return data.voices[0].voice_id}
 async function narrateOpenAI(text:string){if(!process.env.OPENAI_API_KEY)throw new Error("OPENAI_API_KEY is not configured for narration fallback.");const response=await fetch("https://api.openai.com/v1/audio/speech",{method:"POST",signal:AbortSignal.timeout(90000),headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:process.env.OPENAI_TTS_MODEL||"gpt-4o-mini-tts",voice:process.env.OPENAI_TTS_VOICE||"alloy",input:text,response_format:"mp3"})});if(!response.ok)throw new Error(`OpenAI narration failed (${response.status}): ${(await response.text()).slice(0,250)}`);return Buffer.from(await response.arrayBuffer())}
 async function narrate(text:string){if(process.env.ELEVENLABS_API_KEY){try{const id=await voiceId(),response=await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${id}?output_format=mp3_44100_128`,{method:"POST",signal:AbortSignal.timeout(90000),headers:{"xi-api-key":process.env.ELEVENLABS_API_KEY,"Content-Type":"application/json"},body:JSON.stringify({text,model_id:"eleven_multilingual_v2"})});if(response.ok)return Buffer.from(await response.arrayBuffer());}catch{}}return narrateOpenAI(text)}
-async function render(pkg:Package,audio:Buffer){
+async function render(pkg:Package,audioUrl:string){
   if(!process.env.CREATOMATE_API_KEY)throw new Error("CREATOMATE_API_KEY is not configured.");
   const duration=Math.max(20,Math.min(75,Math.ceil(pkg.narration.split(/\s+/).length/2.5))),segment=duration/Math.max(pkg.subtitles.length,1);
   const elements:Record<string,unknown>[]=[
-    {type:"audio",source:`data:audio/mpeg;base64,${audio.toString("base64")}`},
+    {type:"audio",source:audioUrl},
     {type:"text",text:"AIONEX AI NEWS",x:"50%",y:"18%",width:"88%",height:"8%",fill_color:"#7CFFB2",font_family:"Arial",font_weight:"700",font_size:"5.2 vmin",x_alignment:"50%",y_alignment:"50%"},
   ];
   pkg.subtitles.slice(0,10).forEach((text,index)=>elements.push({type:"text",text,time:index*segment,duration:segment,x:"50%",y:"65%",width:"88%",height:"28%",fill_color:"#FFFFFF",stroke_color:"#000000",stroke_width:"0.5 vmin",font_family:"Arial",font_weight:"700",font_size:"6 vmin",x_alignment:"50%",y_alignment:"50%",animations:[{type:"fade",duration:0.25}]}));
@@ -67,7 +68,10 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
     await sql`UPDATE pipeline_runs SET content_id=${contentId}::uuid,stage='narration',updated_at=NOW() WHERE id=${runId}::uuid`;
     const audio=await narrate(pkg.narration);
     await sql`UPDATE pipeline_runs SET stage='render',updated_at=NOW() WHERE id=${runId}::uuid`;
-    const video=await render(pkg,audio),upload=await sql`INSERT INTO youtube_uploads(content_id,title,description,tags,voice_script,subtitles,render_job,status) VALUES(${contentId}::uuid,${pkg.title.slice(0,100)},${pkg.description},${JSON.stringify(pkg.tags)}::jsonb,${pkg.narration},${pkg.subtitles.join("\n")},${JSON.stringify(video)}::jsonb,'rendered') RETURNING id`;
+    const narrationAsset=await storeNarration(audio);
+    let video;
+    try{video=await render(pkg,narrationAsset.url)}finally{await deleteNarration(narrationAsset.id)}
+    const upload=await sql`INSERT INTO youtube_uploads(content_id,title,description,tags,voice_script,subtitles,render_job,status) VALUES(${contentId}::uuid,${pkg.title.slice(0,100)},${pkg.description},${JSON.stringify(pkg.tags)}::jsonb,${pkg.narration},${pkg.subtitles.join("\n")},${JSON.stringify(video)}::jsonb,'rendered') RETURNING id`;
     const uploadId=String(upload[0].id);
     await sql`INSERT INTO media_assets(upload_id,kind,mime_type,external_url,metadata) VALUES(${uploadId}::uuid,'video','video/mp4',${video.url},${JSON.stringify({creatomateId:video.id})}::jsonb)`;
     await sql`UPDATE pipeline_runs SET youtube_upload_id=${uploadId}::uuid,stage='publish',updated_at=NOW() WHERE id=${runId}::uuid`;

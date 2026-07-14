@@ -1,12 +1,10 @@
 import "server-only";
 
-import { neon } from "@neondatabase/serverless";
-
-const database = () => {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not configured.");
-  return neon(url);
-};
+import {
+  miningStatus,
+  startMiningSession,
+  stopMiningSession,
+} from "./db";
 
 export type MiningSession = {
   id: string;
@@ -14,4 +12,9 @@ export type MiningSession = {
   startedAt: string;
   endsAt: string;
   stoppedAt: string | null;
-  durationSeconds: number
+  durationSeconds: number | null;
+  awardedAxp: number;
+  awardedXp: number;
+};
+
+export type MiningState =

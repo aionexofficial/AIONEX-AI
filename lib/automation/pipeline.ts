@@ -43,7 +43,7 @@ async function render(pkg:Package,audioUrl:string){
     job=await poll.json() as typeof job;
   }
   if(job.status!=="succeeded"||!job.url)throw new Error("Creatomate render timed out.");
-  return{id:job.id,url:job.url,duration};
+  return{id:String(job.id),url:job.url,duration};
 }
 async function notifyError(message:string){try{await publishTelegram(`⚠️ *AIONEX automation failed*\n${message.slice(0,800)}`)}catch{}}
 export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,13)){
@@ -52,32 +52,61 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
   const rows=await sql`INSERT INTO pipeline_runs(run_key) VALUES(${runKey}) ON CONFLICT(run_key) DO UPDATE SET updated_at=NOW() RETURNING id`;
   const runId=String(rows[0].id);
   try{
-    const news=await collectNews();
-    if(!news.length)throw new Error("No trusted-source news could be collected.");
-    await sql`UPDATE pipeline_runs SET stage='script',news_ids=${JSON.stringify(news.map(n=>n.url))}::jsonb,updated_at=NOW() WHERE id=${runId}::uuid`;
-    const pkg=await generate(news),hash=createHash("sha256").update(news.map(n=>n.url).sort().join("|")).digest("hex");
-    const content=await sql`INSERT INTO generated_content(content_hash,topic,format,title,body,metadata)
-      VALUES(${hash},'AI/Web3/Crypto','hourly_video',${pkg.title},${pkg.narration},${JSON.stringify({news,pkg})}::jsonb)
-      ON CONFLICT(content_hash) DO UPDATE SET metadata=EXCLUDED.metadata
-      WHERE NOT EXISTS(SELECT 1 FROM youtube_uploads y WHERE y.content_id=generated_content.id)
-        AND NOT EXISTS(SELECT 1 FROM telegram_posts t WHERE t.content_id=generated_content.id)
-        AND NOT EXISTS(SELECT 1 FROM tweets t WHERE t.content_id=generated_content.id)
-      RETURNING id`;
-    if(!content[0])throw new Error("This news package was already published.");
-    const contentId=String(content[0].id);
-    await sql`UPDATE pipeline_runs SET content_id=${contentId}::uuid,stage='narration',updated_at=NOW() WHERE id=${runId}::uuid`;
-    const audio=await narrate(pkg.narration);
-    await sql`UPDATE pipeline_runs SET stage='render',updated_at=NOW() WHERE id=${runId}::uuid`;
-    const narrationAsset=await storeNarration(audio);
-    let video;
-    try{video=await render(pkg,narrationAsset.url)}finally{await deleteNarration(narrationAsset.id)}
-    const upload=await sql`INSERT INTO youtube_uploads(content_id,title,description,tags,voice_script,subtitles,render_job,status) VALUES(${contentId}::uuid,${pkg.title.slice(0,100)},${pkg.description},${JSON.stringify(pkg.tags)}::jsonb,${pkg.narration},${pkg.subtitles.join("\n")},${JSON.stringify(video)}::jsonb,'rendered') RETURNING id`;
-    const uploadId=String(upload[0].id);
-    await sql`INSERT INTO media_assets(upload_id,kind,mime_type,external_url,metadata) VALUES(${uploadId}::uuid,'video','video/mp4',${video.url},${JSON.stringify({creatomateId:video.id})}::jsonb)`;
-    await sql`UPDATE pipeline_runs SET youtube_upload_id=${uploadId}::uuid,stage='publish',updated_at=NOW() WHERE id=${runId}::uuid`;
-    const yt=await uploadYoutube(uploadId),threadIds=await publishXThread(pkg.thread),telegramId=await publishTelegram(`*${pkg.title}*\n\n${pkg.summary}`,video.url);
-    await Promise.all([sql`INSERT INTO tweets(content_id,tweet_id,root_tweet_id,thread_ids,status,published_at) VALUES(${contentId}::uuid,${threadIds.at(-1)||null},${threadIds[0]||null},${JSON.stringify(threadIds)}::jsonb,'published',NOW())`,sql`INSERT INTO telegram_posts(content_id,message_id,chat_id,video_url,status,published_at) VALUES(${contentId}::uuid,${telegramId},${process.env.TELEGRAM_CHAT_ID||null},${video.url},'published',NOW())`]);
-    const result={runId,contentId,videoUrl:video.url,youtubeVideoId:yt.videoId,xThreadIds:threadIds,telegramMessageId:telegramId};
+    let pkg:Package,contentId:string,uploadId:string|undefined,video:{id:string;url:string;duration:number}|undefined;
+    if(existing[0]?.content_id){
+      contentId=String(existing[0].content_id);
+      const saved=await sql`SELECT metadata FROM generated_content WHERE id=${contentId}::uuid LIMIT 1`;
+      pkg=(saved[0]?.metadata as {pkg?:Package}|undefined)?.pkg as Package;
+      if(!pkg?.narration)throw new Error("Saved automation package is unavailable for retry.");
+      if(existing[0].youtube_upload_id){
+        uploadId=String(existing[0].youtube_upload_id);
+        const uploads=await sql`SELECT y.render_job,m.external_url FROM youtube_uploads y LEFT JOIN media_assets m ON m.upload_id=y.id AND m.kind='video' WHERE y.id=${uploadId}::uuid LIMIT 1`;
+        const renderJob=uploads[0]?.render_job as {id?:string;url?:string;duration?:number}|undefined;
+        const url=String(uploads[0]?.external_url||renderJob?.url||"");
+        if(!url)throw new Error("Rendered video URL is unavailable for retry.");
+        video={id:String(renderJob?.id||""),url,duration:Number(renderJob?.duration||0)};
+      }
+    }else{
+      const news=await collectNews();
+      if(!news.length)throw new Error("No trusted-source news could be collected.");
+      await sql`UPDATE pipeline_runs SET stage='script',news_ids=${JSON.stringify(news.map(n=>n.url))}::jsonb,updated_at=NOW() WHERE id=${runId}::uuid`;
+      pkg=await generate(news);
+      const hash=createHash("sha256").update(news.map(n=>n.url).sort().join("|")).digest("hex");
+      const content=await sql`INSERT INTO generated_content(content_hash,topic,format,title,body,metadata)
+        VALUES(${hash},'AI/Web3/Crypto','hourly_video',${pkg.title},${pkg.narration},${JSON.stringify({news,pkg})}::jsonb)
+        ON CONFLICT(content_hash) DO UPDATE SET metadata=EXCLUDED.metadata
+        WHERE NOT EXISTS(SELECT 1 FROM youtube_uploads y WHERE y.content_id=generated_content.id)
+          AND NOT EXISTS(SELECT 1 FROM telegram_posts t WHERE t.content_id=generated_content.id)
+          AND NOT EXISTS(SELECT 1 FROM tweets t WHERE t.content_id=generated_content.id)
+        RETURNING id`;
+      if(!content[0])throw new Error("This news package was already published.");
+      contentId=String(content[0].id);
+      await sql`UPDATE pipeline_runs SET content_id=${contentId}::uuid,stage='narration',updated_at=NOW() WHERE id=${runId}::uuid`;
+    }
+    if(!video){
+      const audio=await narrate(pkg.narration);
+      await sql`UPDATE pipeline_runs SET stage='render',updated_at=NOW() WHERE id=${runId}::uuid`;
+      const narrationAsset=await storeNarration(audio);
+      try{video=await render(pkg,narrationAsset.url)}finally{await deleteNarration(narrationAsset.id)}
+      const upload=await sql`INSERT INTO youtube_uploads(content_id,title,description,tags,voice_script,subtitles,render_job,status) VALUES(${contentId}::uuid,${pkg.title.slice(0,100)},${pkg.description},${JSON.stringify(pkg.tags)}::jsonb,${pkg.narration},${pkg.subtitles.join("\n")},${JSON.stringify(video)}::jsonb,'rendered') ON CONFLICT(content_id) DO UPDATE SET render_job=EXCLUDED.render_job,status='rendered',updated_at=NOW() RETURNING id`;
+      uploadId=String(upload[0].id);
+      await sql`INSERT INTO media_assets(upload_id,kind,mime_type,external_url,metadata) VALUES(${uploadId}::uuid,'video','video/mp4',${video.url},${JSON.stringify({creatomateId:video.id})}::jsonb)`;
+      await sql`UPDATE pipeline_runs SET youtube_upload_id=${uploadId}::uuid,stage='publish',updated_at=NOW() WHERE id=${runId}::uuid`;
+    }
+    if(!video||!uploadId)throw new Error("Rendered publication state is incomplete.");
+    const publishedTelegram=await sql`SELECT message_id FROM telegram_posts WHERE content_id=${contentId}::uuid AND status='published' LIMIT 1`;
+    const telegramId=publishedTelegram[0]?.message_id?String(publishedTelegram[0].message_id):await publishTelegram(`*${pkg.title}*\n\n${pkg.summary}`,video.url);
+    await sql`INSERT INTO telegram_posts(content_id,message_id,chat_id,video_url,status,published_at) VALUES(${contentId}::uuid,${telegramId},${process.env.TELEGRAM_CHAT_ID||null},${video.url},'published',NOW()) ON CONFLICT(content_id) DO UPDATE SET message_id=EXCLUDED.message_id,chat_id=EXCLUDED.chat_id,video_url=EXCLUDED.video_url,status='published',last_error=NULL,published_at=COALESCE(telegram_posts.published_at,NOW())`;
+    const warnings:string[]=[];
+    let youtubeVideoId:string|undefined;
+    const savedUpload=await sql`SELECT video_id,status FROM youtube_uploads WHERE id=${uploadId}::uuid LIMIT 1`;
+    if(savedUpload[0]?.status==="published"&&savedUpload[0]?.video_id)youtubeVideoId=String(savedUpload[0].video_id);
+    else try{youtubeVideoId=(await uploadYoutube(uploadId as string)).videoId}catch(error){const message=error instanceof Error?error.message:"YouTube failed";warnings.push(message);await sql`UPDATE youtube_uploads SET status='failed',last_error=${message.slice(0,1000)},updated_at=NOW() WHERE id=${uploadId}::uuid`}
+    let threadIds:string[]=[];
+    const savedThread=await sql`SELECT thread_ids,status FROM tweets WHERE content_id=${contentId}::uuid LIMIT 1`;
+    if(savedThread[0]?.status==="published")threadIds=Array.isArray(savedThread[0].thread_ids)?savedThread[0].thread_ids.map(String):[];
+    else try{threadIds=await publishXThread(pkg.thread);await sql`INSERT INTO tweets(content_id,tweet_id,root_tweet_id,thread_ids,status,published_at,last_error) VALUES(${contentId}::uuid,${threadIds.at(-1)||null},${threadIds[0]||null},${JSON.stringify(threadIds)}::jsonb,'published',NOW(),NULL) ON CONFLICT(content_id) DO UPDATE SET tweet_id=EXCLUDED.tweet_id,root_tweet_id=EXCLUDED.root_tweet_id,thread_ids=EXCLUDED.thread_ids,status='published',published_at=NOW(),last_error=NULL`}catch(error){const message=error instanceof Error?error.message:"X failed";warnings.push(message);await sql`INSERT INTO tweets(content_id,status,last_error) VALUES(${contentId}::uuid,'failed',${message.slice(0,1000)}) ON CONFLICT(content_id) DO UPDATE SET status='failed',last_error=EXCLUDED.last_error`}
+    const result={runId,contentId,videoUrl:video.url,youtubeVideoId,xThreadIds:threadIds,telegramMessageId:telegramId,warnings};
     await sql`UPDATE pipeline_runs SET status='completed',stage='completed',result=${JSON.stringify(result)}::jsonb,completed_at=NOW(),last_error=NULL,updated_at=NOW() WHERE id=${runId}::uuid`;
     return result;
   }catch(error){

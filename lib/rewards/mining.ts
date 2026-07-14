@@ -17,4 +17,28 @@ export type MiningSession = {
   awardedXp: number;
 };
 
-export type MiningState =
+export type MiningStats = {
+  claims: number;
+  earned: number;
+  lastClaim: string | null;
+  cooldownHours: number;
+};
+
+export type MiningState = {
+  stats: MiningStats;
+  session: MiningSession | null;
+  history: MiningSession[];
+  serverTime: string;
+};
+
+export async function getMiningState(userId: string): Promise<MiningState> {
+  return miningStatus(userId) as Promise<MiningState>;
+}
+
+export async function beginMining(userId: string) {
+  return startMiningSession(userId);
+}
+
+export async function endMining(userId: string) {
+  return stopMiningSession(userId);
+}

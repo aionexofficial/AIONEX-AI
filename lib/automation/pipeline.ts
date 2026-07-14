@@ -2,7 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { parseOpenAIJsonText } from "./openai";
-import { publishTelegram, publishXThread } from "./publish";
+import { notifyTelegramAdmin, publishTelegram, publishXThread, telegramChannelId } from "./publish";
 import { uploadYoutube } from "./youtube";
 import { deleteNarration, storeNarration } from "./audio-assets";
 
@@ -45,10 +45,14 @@ async function render(pkg:Package,audioUrl:string){
   if(job.status!=="succeeded"||!job.url)throw new Error("Creatomate render timed out.");
   return{id:String(job.id),url:job.url,duration};
 }
-async function notifyError(message:string){try{await publishTelegram(`⚠️ *AIONEX automation failed*\n${message.slice(0,800)}`)}catch{}}
+async function notifyError(message:string){try{await notifyTelegramAdmin(`⚠️ *AIONEX automation failed*\n${message.slice(0,800)}`)}catch{}}
 export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,13)){
   const sql=database(),existing=await sql`SELECT * FROM pipeline_runs WHERE run_key=${runKey}`;
-  if(existing[0]?.status==="completed")return existing[0].result;
+  const channelId=telegramChannelId();
+  if(existing[0]?.status==="completed"){
+    const delivery=await sql`SELECT chat_id FROM telegram_posts WHERE content_id=${existing[0].content_id}::uuid AND status='published' LIMIT 1`;
+    if(String(delivery[0]?.chat_id||"")===channelId)return {...(existing[0].result as Record<string,unknown>),skipped:true,reason:"Already published"};
+  }
   const rows=await sql`INSERT INTO pipeline_runs(run_key) VALUES(${runKey}) ON CONFLICT(run_key) DO UPDATE SET updated_at=NOW() RETURNING id`;
   const runId=String(rows[0].id);
   try{
@@ -83,7 +87,7 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
         const published=await sql`SELECT g.id,t.message_id FROM generated_content g JOIN telegram_posts t ON t.content_id=g.id AND t.status='published' WHERE g.content_hash=${hash} LIMIT 1`;
         if(!published[0])throw new Error("This news package is already being processed.");
         contentId=String(published[0].id);
-        const result={runId,contentId,skipped:true,reason:"duplicate_content",telegramMessageId:String(published[0].message_id||"")};
+        const result={runId,contentId,skipped:true,reason:"Already published",telegramMessageId:String(published[0].message_id||"")};
         await sql`UPDATE pipeline_runs SET status='completed',stage='skipped',content_id=${contentId}::uuid,result=${JSON.stringify(result)}::jsonb,completed_at=NOW(),last_error=NULL,updated_at=NOW() WHERE id=${runId}::uuid`;
         return result;
       }
@@ -101,9 +105,9 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
       await sql`UPDATE pipeline_runs SET youtube_upload_id=${uploadId}::uuid,stage='publish',updated_at=NOW() WHERE id=${runId}::uuid`;
     }
     if(!video||!uploadId)throw new Error("Rendered publication state is incomplete.");
-    const publishedTelegram=await sql`SELECT message_id FROM telegram_posts WHERE content_id=${contentId}::uuid AND status='published' LIMIT 1`;
+    const publishedTelegram=await sql`SELECT message_id FROM telegram_posts WHERE content_id=${contentId}::uuid AND status='published' AND chat_id=${channelId} LIMIT 1`;
     const telegramId=publishedTelegram[0]?.message_id?String(publishedTelegram[0].message_id):await publishTelegram(`*${pkg.title}*\n\n${pkg.summary}`,video.url);
-    await sql`INSERT INTO telegram_posts(content_id,message_id,chat_id,video_url,status,published_at) VALUES(${contentId}::uuid,${telegramId},${process.env.TELEGRAM_CHAT_ID||null},${video.url},'published',NOW()) ON CONFLICT(content_id) DO UPDATE SET message_id=EXCLUDED.message_id,chat_id=EXCLUDED.chat_id,video_url=EXCLUDED.video_url,status='published',last_error=NULL,published_at=COALESCE(telegram_posts.published_at,NOW())`;
+    await sql`INSERT INTO telegram_posts(content_id,message_id,chat_id,video_url,status,published_at) VALUES(${contentId}::uuid,${telegramId},${channelId},${video.url},'published',NOW()) ON CONFLICT(content_id) DO UPDATE SET message_id=EXCLUDED.message_id,chat_id=EXCLUDED.chat_id,video_url=EXCLUDED.video_url,status='published',last_error=NULL,published_at=NOW()`;
     const warnings:string[]=[];
     let youtubeVideoId:string|undefined;
     const savedUpload=await sql`SELECT video_id,status FROM youtube_uploads WHERE id=${uploadId}::uuid LIMIT 1`;

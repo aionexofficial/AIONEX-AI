@@ -4,7 +4,7 @@ import { neon } from "@neondatabase/serverless";
 import { parseOpenAIJsonText } from "./openai";
 
 const db = () => { if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured."); return neon(process.env.DATABASE_URL); };
-export type JobType = "news.collect" | "market.analyze" | "content.generate" | "post.daily" | "youtube.script" | "hourly.pipeline";
+export type JobType = "news.collect" | "market.analyze" | "content.generate" | "post.daily" | "youtube.script" | "hourly.pipeline" | "story.daily";
 
 export async function enqueue(jobType: JobType, payload: Record<string, unknown> = {}, idempotencyKey?: string, runAt = new Date()) {
   const rows = await db()`INSERT INTO scheduled_jobs(job_type,payload,idempotency_key,run_at) VALUES(${jobType},${JSON.stringify(payload)}::jsonb,${idempotencyKey ?? null},${runAt.toISOString()}) ON CONFLICT(idempotency_key) DO UPDATE SET updated_at=NOW() RETURNING *`;
@@ -37,7 +37,7 @@ async function content(payload: Record<string, unknown>) {
   if (!rows[0]) throw new Error("Generated content duplicates existing content."); return { contentId: rows[0].id };
 }
 
-async function execute(type: string, payload: Record<string, unknown>) { if(type==="hourly.pipeline"){const {runHourlyPipeline}=await import("./pipeline");return runHourlyPipeline(String(payload.runKey||new Date().toISOString().slice(0,13)));} if (type === "market.analyze") return market(); if (type === "content.generate" || type === "youtube.script") return content(payload); if (type === "post.daily") { const { GET } = await import("@/app/api/cron/daily-post/route"); const response = await GET(new Request("http://internal",{headers:{authorization:`Bearer ${process.env.CRON_SECRET}`}})); if (!response.ok) throw new Error(`Daily post failed (${response.status})`); return { published:true }; } throw new Error(`Unsupported job type: ${type}`); }
+async function execute(type: string, payload: Record<string, unknown>) { if(type==="story.daily"){const day=String(payload.day||new Date().toISOString().slice(0,10)),{generateDailyStory,storySettings}=await import("@/lib/story/service"),generated=await generateDailyStory(day),settings=await storySettings();let render:unknown,published:unknown;const scenarioId=String(generated.id);if(settings.renderingEnabled){const renderer=await import("@/lib/story/render");render=await renderer.renderPrivateStoryPreview(scenarioId,settings.voice);}if(settings.publishingEnabled&&!settings.dryRun&&!settings.previewOnly){const delivery=await import("@/lib/story/delivery");published=await delivery.publishStoryScenario(scenarioId);}return{generated,render,published};} if(type==="hourly.pipeline"){const {runHourlyPipeline}=await import("./pipeline");return runHourlyPipeline(String(payload.runKey||new Date().toISOString().slice(0,13)));} if (type === "market.analyze") return market(); if (type === "content.generate" || type === "youtube.script") return content(payload); if (type === "post.daily") { const { GET } = await import("@/app/api/cron/daily-post/route"); const response = await GET(new Request("http://internal",{headers:{authorization:`Bearer ${process.env.CRON_SECRET}`}})); if (!response.ok) throw new Error(`Daily post failed (${response.status})`); return { published:true }; } throw new Error(`Unsupported job type: ${type}`); }
 
 export async function runWorker(limit = 5) {
   const worker = randomUUID(); const scheduler = await db()`SELECT value FROM automation_settings WHERE key='scheduler'`;

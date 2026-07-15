@@ -1,0 +1,22 @@
+{
+  "scenarioId": "9f6a9452-fec2-4fd1-978e-b66a3f97ce72",
+  "scenarioKey": "week1-2026-07-15-1",
+  "title": "Meet the Intelligence That Evolves With You",
+  "category": "ecosystem_overview",
+  "provider": "creatomate",
+  "providerJobId": "4d65d930-8d37-47a5-b7e5-c885617a3523",
+  "videoUrl": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/4d65d930-8d37-47a5-b7e5-c885617a3523.mp4",
+  "published": false,
+  "validation": {
+    "passed": true,
+    "width": 1080,
+    "height": 1920,
+    "aspectRatio": "9:16",
+    "durationSeconds": 50,
+    "hasAudio": true,
+    "hasSubtitles": true,
+    "hasLogo": true,
+    "noBlankScenes": true,
+    "errors": []
+  }
+}

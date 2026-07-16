@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "story:preview": "node --env-file=.env.local --experimental-strip-types scripts/generate-visual-story-preview.ts",
+    "story:frames": "node --env-file=.env.local --experimental-strip-types scripts/generate-story-verification-frames.ts",
     "check:production-env": "node scripts/check-production-env.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
     "verify:rewards": "node scripts/verify-rewards.mjs"

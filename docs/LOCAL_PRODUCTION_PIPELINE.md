@@ -28,6 +28,8 @@ If local inference times out or fails schema validation, a factual fallback pack
 
 ## Daily Telegram automation
 
-On the Windows production workstation, run `scripts/install-daily-video-task.ps1` once to register **AIONEX Daily Narrated Video** for 10:00 local time. The task runs `npm run automation:daily-video`, which generates the dated narrated artifact, rejects silent audio, verifies the official `@aionexweb3` channel, and publishes Telegram only. A database content hash and Telegram delivery record prevent duplicate posts. YouTube, X, and TikTok are not invoked.
+On the Windows production workstation, run `scripts/install-daily-video-task.ps1` once to register **AIONEX Daily Narrated Video** for 10:00, 15:00, and 20:00 local time. The task invokes the repository runner through the absolute Node and script paths, generates the dated narrated artifact, rejects silent audio, verifies the official `@aionexweb3` channel, publishes once to Telegram, and uploads both a public YouTube Short and a public standard video. Database content hashes and delivery records prevent duplicate posts. X and TikTok are not invoked.
 
 This automation depends on the workstation being available with Ollama and FFmpeg running locally. Logs are written to `artifacts/local-pipeline/<day>/daily-automation-log.json`.
+
+`REMOTION_RENDER_SCALE` defaults to `0.5` so memory-constrained production workstations render with one half-scale Chrome worker. FFmpeg then performs a Lanczos upscale, and the publisher remains gated on the final 1080x1920 H.264/AAC validation.

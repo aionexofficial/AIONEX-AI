@@ -2,7 +2,8 @@ $ErrorActionPreference = "Stop"
 $taskName = "AIONEX Daily Narrated Video"
 $projectDirectory = Split-Path -Parent $PSScriptRoot
 $node = (Get-Command node.exe).Source
-$action = New-ScheduledTaskAction -Execute $node -Argument "--env-file-if-exists=.env.local scripts/run-daily-video-automation.mjs" -WorkingDirectory $projectDirectory
+$runner = Join-Path $PSScriptRoot "run-daily-video-automation.mjs"
+$action = New-ScheduledTaskAction -Execute $node -Argument "--env-file-if-exists=.env.local `"$runner`"" -WorkingDirectory $projectDirectory
 $triggers = @(
   (New-ScheduledTaskTrigger -Daily -At "10:00"),
   (New-ScheduledTaskTrigger -Daily -At "15:00"),

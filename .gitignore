@@ -17,6 +17,7 @@
 /.next/
 /out/
 /artifacts/local-pipeline/
+/artifacts/scheduler-*.log
 
 # production
 /build

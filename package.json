@@ -14,6 +14,7 @@
     "remotion:render": "remotion render remotion/index.ts AionexIntro artifacts/remotion/aionex-intro.mp4",
     "story:preview": "node --env-file=.env.local --experimental-strip-types scripts/generate-visual-story-preview.ts",
     "pipeline:dry-run": "node --experimental-strip-types scripts/run-local-video-dry-run.ts",
+    "automation:daily-video": "node --env-file-if-exists=.env.local scripts/run-daily-video-automation.mjs",
     "story:frames": "node --env-file=.env.local --experimental-strip-types scripts/generate-story-verification-frames.ts",
     "check:production-env": "node scripts/check-production-env.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",

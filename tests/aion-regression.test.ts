@@ -26,10 +26,13 @@ test("Telegram publishing and admin notification destinations stay separated", a
 });
 
 test("protected automation workflows and cron definitions retain duplicate protection", async () => {
-  const pipeline = await readFile(new URL("../lib/automation/pipeline.ts", import.meta.url), "utf8");
+  const telegram = await readFile(new URL("../scripts/publish-daily-telegram-video.mjs", import.meta.url), "utf8");
+  const youtube = await readFile(new URL("../scripts/publish-daily-youtube-video.mjs", import.meta.url), "utf8");
   const engine = await readFile(new URL("../lib/automation/engine.ts", import.meta.url), "utf8");
-  assert.match(pipeline, /Already published/);
-  assert.match(pipeline, /ON CONFLICT/);
+  assert.match(telegram, /contentHash/);
+  assert.match(telegram, /ON CONFLICT/);
+  assert.match(youtube, /publication_variant/);
+  assert.match(youtube, /status==="published"/);
   assert.match(engine, /content_hash/);
   assert.match(engine, /ON CONFLICT/);
 });

@@ -1,0 +1,2 @@
+import {seasonLeaderboard} from "@/lib/aion/gameplay";
+export async function GET(request:Request,context:{params:Promise<{key:string}>}){const{key}=await context.params;const limit=Number(new URL(request.url).searchParams.get("limit")||50);try{return Response.json({season:key,leaders:await seasonLeaderboard(key,limit)});}catch(error){return Response.json({error:error instanceof Error?error.message:"Invalid season."},{status:400});}}

@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHmac, randomInt } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
-import { DEFAULT_AION_ECONOMY, levelProgress, maximumAcceptedTaps, type AionEconomyConfig } from "./economy";
+import { DEFAULT_AION_ECONOMY, levelProgress, maximumAcceptedTaps, tapRewardForLevel, type AionEconomyConfig } from "./economy";
 import { stageForLevel, type AionStage } from "./stages";
 import type { AionState, TapBatchInput, TapBatchResult } from "./types";
 
@@ -16,6 +16,8 @@ const settingMap = {
   aion_energy_regen_amount: "energyRegenAmount",
   aion_energy_regen_interval_seconds: "energyRegenIntervalSeconds",
   aion_base_tap_power: "baseTapPower",
+  aion_tap_reward_per_level: "tapRewardPerLevel",
+  aion_xp_per_level: "xpPerLevel",
   aion_tap_xp: "tapXp",
   aion_critical_chance_bps: "criticalChanceBps",
   aion_critical_multiplier_bps: "criticalMultiplierBps",
@@ -63,14 +65,16 @@ export async function getAionState(userId: string): Promise<AionState | null> {
   const row = rows[0];
   if (!row) return null;
   const level = Number(row.level || 1), energy = Number(row.current_energy), maximum = Number(row.max_energy);
-  const progress = levelProgress(Number(row.xp || 0));
+  const progress = levelProgress(Number(row.xp || 0),config.xpPerLevel);
+  const prestige=await db()`SELECT permanent_bonus_bps FROM aion_prestige_profiles WHERE user_id=${userId}::uuid`;
+  const tapPower=tapRewardForLevel(level,config.tapRewardPerLevel,Number(prestige[0]?.permanent_bonus_bps||0));
   const nextRegenAt = energy < maximum ? new Date(Date.now() + Number(row.energy_regen_interval_seconds) * 1000).toISOString() : null;
   return {
     serverTime: new Date().toISOString(),
     user: { id: String(row.id), username: row.username ? String(row.username) : null, displayName: String(row.display_name), axpBalance: Number(row.axp_balance), lifetimeAxp: Number(row.lifetime_axp), xp: Number(row.xp), level, streak: Number(row.login_streak) },
     character: { name: String(row.character_name), energyColor: String(row.energy_color), eyeColor: String(row.eye_color), aura: String(row.aura), background: String(row.background), profileFrame: String(row.profile_frame), onboardingCompleted: Boolean(row.onboarding_completed), totalTaps: Number(row.total_taps), highestCombo: Number(row.highest_combo) },
     energy: { current: energy, maximum, regenAmount: Number(row.energy_regen_amount), regenIntervalSeconds: Number(row.energy_regen_interval_seconds), nextRegenAt },
-    mining: { tapPower: Number(row.tap_power), criticalChanceBps: Number(row.critical_chance_bps), criticalMultiplierBps: Number(row.critical_multiplier_bps) },
+    mining: { tapPower, criticalChanceBps: Number(row.critical_chance_bps), criticalMultiplierBps: Number(row.critical_multiplier_bps) },
     progression: { currentXp: progress.current, requiredXp: progress.required, totalXp: progress.total, level: progress.level },
     stage: await configuredStage(level), economy: config,
     dialogue: energy < maximum * 0.15 ? "Energy is low. Let us recharge." : "Welcome back, Creator.",
@@ -135,7 +139,7 @@ export async function submitTapBatch(userId: string, input: TapBatchInput, reque
   for (let position = 1; position <= input.tapCount; position += 1) if (randomInt(10_000) < config.criticalChanceBps) criticalPositions.push(position);
   const deviceHash = secretHash(`${userId}:${input.deviceId}`), ipHash = requestIp ? secretHash(requestIp) : null;
   const rows = await db()`WITH candidate AS (
-      SELECT p.*,u.axp_balance,u.lifetime_axp,u.xp,u.level FROM aion_character_profiles p JOIN reward_users u ON u.id=p.user_id
+      SELECT p.*,u.axp_balance,u.lifetime_axp,u.xp,u.level,COALESCE(pp.permanent_bonus_bps,0) AS permanent_bonus_bps FROM aion_character_profiles p JOIN reward_users u ON u.id=p.user_id LEFT JOIN aion_prestige_profiles pp ON pp.user_id=u.id
       WHERE p.user_id=${userId}::uuid AND u.status='active' AND NOT EXISTS(SELECT 1 FROM aion_tap_batches x WHERE x.user_id=p.user_id AND x.idempotency_key=${input.idempotencyKey}) FOR UPDATE OF p,u
     ), effective AS (
       SELECT c.*,LEAST(c.max_energy,c.current_energy+(FLOOR(EXTRACT(EPOCH FROM (NOW()-c.last_energy_at))/c.energy_regen_interval_seconds)::int*c.energy_regen_amount)) AS effective_energy FROM candidate c
@@ -146,7 +150,7 @@ export async function submitTapBatch(userId: string, input: TapBatchInput, reque
     ), inserted AS (
       INSERT INTO aion_tap_batches(user_id,idempotency_key,session_id,device_hash,ip_hash,requested_taps,accepted_taps,rejected_taps,critical_taps,reward_axp,reward_xp,energy_spent,client_started_at,client_ended_at,status,rejection_code,economy_version,metadata)
       SELECT ${userId}::uuid,${input.idempotencyKey},${input.sessionId},${deviceHash},${ipHash},${input.tapCount},r.accepted,${input.tapCount}-r.accepted,r.criticals,
-        r.accepted*r.tap_power+r.criticals*r.tap_power*(${config.criticalMultiplierBps}-10000)/10000,r.accepted*${config.tapXp},r.accepted*${config.energyCostPerTap},${input.startedAt}::timestamptz,${input.endedAt}::timestamptz,
+        r.accepted*FLOOR(r.level*${config.tapRewardPerLevel}*(10000+r.permanent_bonus_bps)/10000.0)::int+r.criticals*FLOOR(r.level*${config.tapRewardPerLevel}*(10000+r.permanent_bonus_bps)/10000.0)::int*(${config.criticalMultiplierBps}-10000)/10000,r.accepted*${config.tapXp},r.accepted*${config.energyCostPerTap},${input.startedAt}::timestamptz,${input.endedAt}::timestamptz,
         CASE WHEN r.accepted=0 THEN 'rejected' WHEN r.accepted<${input.tapCount} THEN 'partial' ELSE 'accepted' END,
         CASE WHEN r.accepted=0 THEN 'rate_or_energy' WHEN r.accepted<${input.tapCount} THEN 'partial_rate_or_energy' ELSE NULL END,${config.version},jsonb_build_object('allowedByRate',${allowedByRate}::int) FROM rewards r
       ON CONFLICT(user_id,idempotency_key) DO NOTHING RETURNING *
@@ -157,7 +161,7 @@ export async function submitTapBatch(userId: string, input: TapBatchInput, reque
       INSERT INTO aion_economy_transactions(user_id,transaction_type,axp_delta,xp_delta,energy_delta,reference_type,reference_id,idempotency_key,economy_version,metadata)
       SELECT user_id,'tap_batch',reward_axp,reward_xp,-energy_spent,'aion_tap_batch',id,'aion-tap:'||id,economy_version,jsonb_build_object('acceptedTaps',accepted_taps,'criticalTaps',critical_taps) FROM inserted RETURNING *
     ), updated_user AS (
-      UPDATE reward_users u SET axp_balance=u.axp_balance+i.reward_axp,lifetime_axp=u.lifetime_axp+i.reward_axp,xp=u.xp+i.reward_xp,level=1+FLOOR((u.xp+i.reward_xp)/500.0)::int,last_mined_at=CASE WHEN i.accepted_taps>0 THEN NOW() ELSE u.last_mined_at END,updated_at=NOW()
+      UPDATE reward_users u SET axp_balance=u.axp_balance+i.reward_axp,lifetime_axp=u.lifetime_axp+i.reward_axp,xp=u.xp+i.reward_xp,level=1+FLOOR((u.xp+i.reward_xp)/${config.xpPerLevel}::numeric)::int,last_mined_at=CASE WHEN i.accepted_taps>0 THEN NOW() ELSE u.last_mined_at END,updated_at=NOW()
       FROM inserted i WHERE u.id=i.user_id RETURNING u.*
     ), updated_profile AS (
       UPDATE aion_character_profiles p SET current_energy=GREATEST(0,r.effective_energy-i.energy_spent),last_energy_at=NOW(),total_taps=p.total_taps+i.accepted_taps,highest_combo=GREATEST(p.highest_combo,i.accepted_taps),economy_version=${config.version},updated_at=NOW()

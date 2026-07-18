@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { levelForXp, levelProgress, maximumAcceptedTaps, regeneratedEnergy } from "../lib/aion/economy.ts";
+import { DEFAULT_AION_ECONOMY, levelForXp, levelProgress, maximumAcceptedTaps, regeneratedEnergy, tapRewardForLevel } from "../lib/aion/economy.ts";
 import { stageForLevel } from "../lib/aion/stages.ts";
 
 test("offline energy regeneration is capped and ignores negative clock drift", () => {
@@ -13,6 +13,13 @@ test("tap batches enforce duration, batch, and integer boundaries", () => {
   assert.equal(maximumAcceptedTaps(50, 1_000, 50, 12), 14);
   assert.equal(maximumAcceptedTaps(8, 1_000, 50, 12), 8);
   assert.equal(maximumAcceptedTaps(500, 60_000, 50, 12), 50);
+});
+
+test("new players start with 1,000 energy and tap rewards scale by level",()=>{
+  assert.equal(DEFAULT_AION_ECONOMY.defaultMaxEnergy,1000);
+  assert.equal(tapRewardForLevel(1),2);
+  assert.equal(tapRewardForLevel(5),10);
+  assert.equal(tapRewardForLevel(5,2,500),10);
 });
 
 test("level progression and every required AION stage boundary are stable", () => {

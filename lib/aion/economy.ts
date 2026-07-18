@@ -11,6 +11,8 @@ export type AionEconomyConfig = {
   energyRegenAmount: number;
   energyRegenIntervalSeconds: number;
   baseTapPower: number;
+  tapRewardPerLevel: number;
+  xpPerLevel: number;
   tapXp: number;
   criticalChanceBps: number;
   criticalMultiplierBps: number;
@@ -22,25 +24,30 @@ export const DEFAULT_AION_ECONOMY: Readonly<AionEconomyConfig> = {
   maxBatchTaps: 50,
   maxTapsPerSecond: 12,
   energyCostPerTap: 1,
-  defaultMaxEnergy: 500,
+  defaultMaxEnergy: 1000,
   energyRegenAmount: 1,
   energyRegenIntervalSeconds: 6,
   baseTapPower: 1,
+  tapRewardPerLevel: 2,
+  xpPerLevel: XP_PER_LEVEL,
   tapXp: 1,
   criticalChanceBps: 500,
   criticalMultiplierBps: 20_000,
 };
 
-export function levelForXp(xp: number) {
-  return 1 + Math.floor(Math.max(0, xp) / XP_PER_LEVEL);
+export function levelForXp(xp: number, xpPerLevel = XP_PER_LEVEL) {
+  return 1 + Math.floor(Math.max(0, xp) / Math.max(1, xpPerLevel));
 }
 
-export function levelProgress(xp: number) {
+export function levelProgress(xp: number, xpPerLevel = XP_PER_LEVEL) {
   const safeXp = Math.max(0, Math.floor(xp));
-  const level = levelForXp(safeXp);
-  const levelStartXp = (level - 1) * XP_PER_LEVEL;
-  return { level, current: safeXp - levelStartXp, required: XP_PER_LEVEL, total: safeXp };
+  const required = Math.max(1, Math.floor(xpPerLevel));
+  const level = levelForXp(safeXp, required);
+  const levelStartXp = (level - 1) * required;
+  return { level, current: safeXp - levelStartXp, required, total: safeXp };
 }
+
+export function tapRewardForLevel(level:number,rewardPerLevel=2,permanentBonusBps=0){return Math.max(1,Math.floor(Math.max(1,level)*Math.max(1,rewardPerLevel)*(10_000+Math.max(0,permanentBonusBps))/10_000));}
 
 export function regeneratedEnergy(input: { current: number; maximum: number; lastEnergyAt: number; now: number; amount: number; intervalSeconds: number }) {
   const elapsedSeconds = Math.max(0, Math.floor((input.now - input.lastEnergyAt) / 1000));

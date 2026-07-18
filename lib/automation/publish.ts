@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHmac, randomBytes } from "node:crypto";
 import { getPost, updateDelivery } from "./db";
+import { sendTelegramPublication, type TelegramFormatting } from "./telegram-client";
 
 const OFFICIAL_CHANNEL_USERNAME = "aionexweb3";
 const X_PUBLISHING_ENABLED = false;
@@ -51,21 +52,15 @@ export function verifyOfficialTelegramChannel() {
   return verifiedChannel;
 }
 
-export async function publishTelegram(text: string, videoUrl?: string) {
+export async function publishTelegram(text: string, videoUrl?: string, formatting?: TelegramFormatting) {
   const channelId = await verifyOfficialTelegramChannel();
-  const method = videoUrl ? "sendVideo" : "sendMessage";
-  const body = videoUrl
-    ? { chat_id: channelId, video: videoUrl, caption: text.slice(0, 1024), parse_mode: "Markdown" }
-    : { chat_id: channelId, text, parse_mode: "Markdown", disable_web_page_preview: false };
-  const result = await telegramRequest(method, body);
-  return String(result?.message_id || "sent");
+  return sendTelegramPublication(telegramRequest, channelId, text, videoUrl, formatting);
 }
 
 export async function notifyTelegramAdmin(text: string) {
   const result = await telegramRequest("sendMessage", {
     chat_id: telegramAdminChatId(),
     text: text.slice(0, 4096),
-    parse_mode: "Markdown",
     disable_web_page_preview: true,
   });
   return String(result?.message_id || "sent");

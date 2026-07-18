@@ -1,4 +1,4 @@
-import { enqueue, jobState, runWorker } from "@/lib/automation/engine";
-import { logError } from "@/lib/observability/logger";
-export const maxDuration=300;
-export async function GET(request:Request){if(!process.env.CRON_SECRET||request.headers.get("authorization")!==`Bearer ${process.env.CRON_SECRET}`)return Response.json({error:"Unauthorized"},{status:401});try{const now=new Date(),hour=now.toISOString().slice(0,13),day=now.toISOString().slice(0,10);const jobs=await Promise.all([enqueue("market.analyze",{},`market:${hour}`),enqueue("hourly.pipeline",{runKey:hour},`pipeline:${hour}`),enqueue("story.daily",{day},`story:${day}`)]);const worker=await runWorker(8);const states=await Promise.all(jobs.map(job=>jobState(String(job.id))));const ok=states.every(job=>job?.status==="completed");return Response.json({ok,worker,jobs:states},{status:ok?200:500,headers:{"Cache-Control":"no-store"}});}catch(error){logError("cron.automation",error);return Response.json({ok:false,error:"Automation run failed."},{status:500});}}
+const disabled={ok:false,disabled:true,error:"Legacy cloud automation is disabled. The narrated local pipeline is the only video automation."};
+
+export function GET(){return Response.json(disabled,{status:410,headers:{"Cache-Control":"no-store"}});}
+export function POST(){return Response.json(disabled,{status:410,headers:{"Cache-Control":"no-store"}});}

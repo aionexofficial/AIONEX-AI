@@ -2,7 +2,8 @@ import "server-only";
 
 import { neon } from "@neondatabase/serverless";
 import { deleteNarration, storeNarration } from "@/lib/automation/audio-assets";
-import { notifyTelegramAdmin } from "@/lib/automation/publish";
+import { creatomateRequest } from "@/lib/automation/creatomate";
+import { isCreatomateManualFailure } from "@/lib/automation/failures";
 import { buildStoryComposition, compositionManifest, STORY_COMPOSITION_ID } from "./composition";
 import type { StoryScenario } from "./types";
 
@@ -10,6 +11,7 @@ type RenderResult={id:string;url:string;snapshotUrl?:string;templateId:string|nu
 type Manifest=ReturnType<typeof compositionManifest>;
 
 const database=()=>{if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL is not configured.");return neon(process.env.DATABASE_URL);};
+function assertLegacyStoryRenderingDisabled():void{throw new Error("Legacy Creatomate story rendering is disabled.");}
 
 async function narration(text:string,voice:string){
   if(!process.env.OPENAI_API_KEY)throw new Error("OPENAI_API_KEY is required for Story Engine narration.");
@@ -21,17 +23,15 @@ async function narration(text:string,voice:string){
 async function createRender(scenario:StoryScenario,audioUrl:string):Promise<RenderResult>{
   if(!process.env.CREATOMATE_API_KEY)throw new Error("CREATOMATE_API_KEY is required for Story Engine rendering.");
   const composition=buildStoryComposition(scenario,audioUrl);
-  const response=await fetch("https://api.creatomate.com/v2/renders",{method:"POST",signal:AbortSignal.timeout(30000),headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify(composition)});
+  const response=await creatomateRequest("/v2/renders",{method:"POST",signal:AbortSignal.timeout(30000),headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify(composition)});
   type Job={id?:string;status?:string;url?:string;snapshot_url?:string;template_id?:string|null;file_size?:number;width?:number;height?:number;duration?:number;render_scale?:number;error_message?:string};
   const body=await response.json() as Job[]|Job;
-  if(!response.ok)throw new Error(`Creatomate rejected Story Engine render (${response.status}): ${JSON.stringify(body).slice(0,500)}`);
   let job=Array.isArray(body)?body[0]:body;
   if(!job?.id)throw new Error("Creatomate returned no Story Engine render ID.");
   for(let attempt=0;attempt<60&&job.status!=="succeeded";attempt++){
     if(job.status==="failed")throw new Error(job.error_message||"Creatomate Story Engine render failed.");
     await new Promise(resolve=>setTimeout(resolve,5000));
-    const poll=await fetch(`https://api.creatomate.com/v2/renders/${job.id}`,{headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`},signal:AbortSignal.timeout(20000)});
-    if(!poll.ok)throw new Error(`Creatomate render polling failed (${poll.status}).`);
+    const poll=await creatomateRequest(`/v2/renders/${job.id}`,{headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`},signal:AbortSignal.timeout(20000)},{checkCircuit:false});
     job=await poll.json() as Job;
   }
   if(job.status!=="succeeded"||!job.url)throw new Error("Creatomate Story Engine render timed out.");
@@ -71,6 +71,8 @@ export async function validateStoryOutput(input:{url:string;scenario:StoryScenar
 }
 
 export async function renderPrivateStoryPreview(scenarioId:string,voice="alloy"){
+  assertLegacyStoryRenderingDisabled();
+  /* c8 ignore start -- retained only for historical preview records; no trigger can execute it. */
   const sql=database(),scenarioRows=await sql`SELECT * FROM story_scenarios WHERE id=${scenarioId}::uuid AND status='approved' LIMIT 1`;
   if(!scenarioRows[0])throw new Error("Approved Story Engine scenario not found.");
   const sceneRows=await sql`SELECT * FROM story_scenes WHERE scenario_id=${scenarioId}::uuid ORDER BY position`,row=scenarioRows[0];
@@ -85,13 +87,14 @@ export async function renderPrivateStoryPreview(scenarioId:string,voice="alloy")
     const composition=buildStoryComposition(scenario,asset.url),manifest=compositionManifest(composition),render=await createRender(scenario,asset.url);
     await sql`UPDATE story_render_jobs SET provider_job_id=${render.id},video_url=${render.url},status='validating',updated_at=NOW() WHERE id=${jobId}::uuid`;
     const validation=await validateStoryOutput({url:render.url,scenario,width:1080,height:1920,manifest,render,allowDraftScale:true});
-    if(!validation.passed){await notifyTelegramAdmin(`WARNING: Story visual validation failed for ${scenario.title}: ${validation.errors.join(" ")}`);throw new Error(`Story output validation failed: ${validation.errors.join(" ")}`);}
+    if(!validation.passed)throw new Error(`Story output validation failed: ${validation.errors.join(" ")}`);
     const done=await sql`UPDATE story_render_jobs SET status='ready',duration_seconds=${scenario.durationSeconds},width=${validation.width},height=${validation.height},has_audio=TRUE,has_subtitles=TRUE,validation=${JSON.stringify(validation)}::jsonb,completed_at=NOW(),updated_at=NOW() WHERE id=${jobId}::uuid RETURNING *`;
     await sql`UPDATE story_scenarios SET status='previewed',updated_at=NOW() WHERE id=${scenarioId}::uuid`;
     await sql`INSERT INTO story_deliveries(scenario_id,platform,status,external_id,external_url,attempts,updated_at) VALUES(${scenarioId}::uuid,'preview','skipped',${render.id},${render.url},1,NOW()) ON CONFLICT(scenario_id,platform) DO UPDATE SET status='skipped',external_id=EXCLUDED.external_id,external_url=EXCLUDED.external_url,attempts=story_deliveries.attempts+1,last_error=NULL,updated_at=NOW()`;
     return{job:done[0],validation,skipped:false};
-  }catch(error){const message=error instanceof Error?error.message:"Story render failed";await sql`UPDATE story_render_jobs SET status='failed',last_error=${message.slice(0,2000)},updated_at=NOW() WHERE id=${jobId}::uuid`;throw error;}
+  }catch(error){const message=error instanceof Error?error.message:"Story render failed",status=isCreatomateManualFailure(error)?"awaiting_billing":"failed";await sql`UPDATE story_render_jobs SET status=${status},last_error=${message.slice(0,2000)},updated_at=NOW() WHERE id=${jobId}::uuid`;throw error;}
   finally{if(assetId)await deleteNarration(assetId).catch(()=>undefined);}
+  /* c8 ignore stop */
 }
 
 function createKey(scenario:StoryScenario){return Buffer.from(`${scenario.scenarioKey}:${scenario.title}:${scenario.narration.length}`).toString("base64url").slice(0,80);}

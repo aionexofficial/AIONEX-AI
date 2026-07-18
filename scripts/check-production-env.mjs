@@ -13,8 +13,8 @@ const xPublishing=Boolean((process.env.X_CONSUMER_KEY||process.env.X_API_KEY)?.t
 const xVerification=Boolean(process.env.X_CLIENT_ID?.trim()&&process.env.X_CLIENT_SECRET?.trim());
 const youtubeVerification=Boolean((process.env.YOUTUBE_CLIENT_ID||process.env.GOOGLE_CLIENT_ID)?.trim()&&(process.env.YOUTUBE_CLIENT_SECRET||process.env.GOOGLE_CLIENT_SECRET)?.trim());
 if(!process.env.GOOGLE_REDIRECT_URI?.trim())errors.push("Missing: GOOGLE_REDIRECT_URI");
-const pipelineRequired=["OPENAI_API_KEY","ELEVENLABS_API_KEY","CREATOMATE_API_KEY","TELEGRAM_CHANNEL_ID","TELEGRAM_ADMIN_CHAT_ID"].filter(name=>!process.env[name]?.trim());
+const pipelineRequired=["OPENAI_API_KEY","TELEGRAM_CHANNEL_ID"].filter(name=>!process.env[name]?.trim());
 if(process.env.TELEGRAM_CHANNEL_ID&&!/^(?:@aionexweb3|-100\d+)$/.test(process.env.TELEGRAM_CHANNEL_ID))errors.push("TELEGRAM_CHANNEL_ID must be @aionexweb3 or its -100... channel ID.");
 console.log(`Production environment: ${errors.length?"INCOMPLETE":"READY"}`);for(const error of errors)console.log(error);
-console.log(`X publishing: ${xPublishing?"configured":"disabled"}`);console.log(`X task verification: ${xVerification?"credentials present":"manual review only"}`);console.log(`YouTube task verification: ${youtubeVerification?"credentials present":"manual review only"}`);console.log(`Hourly media pipeline: ${pipelineRequired.length?`missing ${pipelineRequired.join(", ")}`:"configured"}`);
+console.log(`X publishing: ${xPublishing?"configured":"disabled"}`);console.log(`X task verification: ${xVerification?"credentials present":"manual review only"}`);console.log(`YouTube task verification: ${youtubeVerification?"credentials present":"manual review only"}`);console.log(`Local narrated pipeline: ${pipelineRequired.length?`missing ${pipelineRequired.join(", ")}`:"configured"}`);
 process.exitCode=errors.length?1:0;

@@ -2,9 +2,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { parseOpenAIJsonText } from "./openai";
-import { notifyTelegramAdmin, publishTelegram, publishXThread, telegramChannelId } from "./publish";
+import { publishTelegram, publishXThread, telegramChannelId } from "./publish";
 import { uploadYoutube } from "./youtube";
 import { deleteNarration, storeNarration } from "./audio-assets";
+import { creatomateRequest } from "./creatomate";
+import { isCreatomateManualFailure } from "./failures";
 
 const database=()=>{if(!process.env.DATABASE_URL)throw new Error("DATABASE_URL is not configured.");return neon(process.env.DATABASE_URL)};
 const feeds=[
@@ -15,6 +17,7 @@ const feeds=[
 ];
 type News={source:string;title:string;url:string;publishedAt:string;importance:number};
 type Package={title:string;description:string;summary:string;narration:string;tags:string[];thread:string[];subtitles:string[]};
+function assertLegacyPipelineDisabled():void{throw new Error("Legacy Creatomate hourly pipeline is disabled.");}
 const clean=(value:string)=>value.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/<[^>]*>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').trim();
 function items(xml:string,source:string){return [...xml.matchAll(/<item[\s\S]*?<\/item>/gi)].slice(0,15).map(match=>{const item=match[0],pick=(tag:string)=>clean(item.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,"i"))?.[1]||"");const title=pick("title"),url=pick("link")||item.match(/<link[^>]+href=["']([^"']+)/i)?.[1]||"",published=pick("pubDate")||pick("published")||pick("dc:date");return{source,title,url,publishedAt:new Date(published||Date.now()).toISOString(),importance:0}}).filter(x=>x.title&&x.url)}
 function rank(item:News){const text=item.title.toLowerCase();let score=Math.max(0,24-(Date.now()-new Date(item.publishedAt).getTime())/3600000);for(const word of ["breaking","regulation","sec","hack","exploit","bitcoin","ethereum","openai","launch","approved","billion","record"])if(text.includes(word))score+=8;if(item.source==="CoinDesk"||item.source==="TechCrunch AI")score+=4;return Math.round(score)}
@@ -31,22 +34,22 @@ async function render(pkg:Package,audioUrl:string){
     {type:"text",text:"AIONEX AI NEWS",x:"50%",y:"18%",width:"88%",height:"8%",fill_color:"#7CFFB2",font_family:"Arial",font_weight:"700",font_size:"5.2 vmin",x_alignment:"50%",y_alignment:"50%"},
   ];
   pkg.subtitles.slice(0,10).forEach((text,index)=>elements.push({type:"text",text,time:index*segment,duration:segment,x:"50%",y:"65%",width:"88%",height:"28%",fill_color:"#FFFFFF",stroke_color:"#000000",stroke_width:"0.5 vmin",font_family:"Arial",font_weight:"700",font_size:"6 vmin",x_alignment:"50%",y_alignment:"50%",animations:[{type:"fade",duration:0.25}]}));
-  const response=await fetch("https://api.creatomate.com/v2/renders",{method:"POST",signal:AbortSignal.timeout(30000),headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({output_format:"mp4",width:1080,height:1920,duration,frame_rate:30,background_color:"#070B18",elements})});
+  const response=await creatomateRequest("/v2/renders",{method:"POST",signal:AbortSignal.timeout(30000),headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({output_format:"mp4",width:1080,height:1920,duration,frame_rate:30,background_color:"#070B18",elements})});
   const created=await response.json() as Array<{id?:string;status?:string;url?:string;error_message?:string}>|{id?:string;status?:string;url?:string;error_message?:string};
-  if(!response.ok)throw new Error(`Creatomate render creation failed (${response.status}).`);
   let job=Array.isArray(created)?created[0]:created;
   if(!job?.id)throw new Error("Creatomate returned no render ID.");
   for(let i=0;i<36&&job.status!=="succeeded";i++){
     if(job.status==="failed")throw new Error(job.error_message||"Creatomate render failed.");
     await new Promise(resolve=>setTimeout(resolve,5000));
-    const poll=await fetch(`https://api.creatomate.com/v2/renders/${job.id}`,{headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`}});
+    const poll=await creatomateRequest(`/v2/renders/${job.id}`,{headers:{Authorization:`Bearer ${process.env.CREATOMATE_API_KEY}`},signal:AbortSignal.timeout(20000)},{checkCircuit:false});
     job=await poll.json() as typeof job;
   }
   if(job.status!=="succeeded"||!job.url)throw new Error("Creatomate render timed out.");
   return{id:String(job.id),url:job.url,duration};
 }
-async function notifyError(message:string){try{await notifyTelegramAdmin(`⚠️ *AIONEX automation failed*\n${message.slice(0,800)}`)}catch{}}
 export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,13)){
+  assertLegacyPipelineDisabled();
+  /* c8 ignore start -- retained only for historical data compatibility; no trigger can execute it. */
   const sql=database(),existing=await sql`SELECT * FROM pipeline_runs WHERE run_key=${runKey}`;
   const channelId=telegramChannelId();
   if(existing[0]?.status==="completed"){
@@ -106,7 +109,7 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
     }
     if(!video||!uploadId)throw new Error("Rendered publication state is incomplete.");
     const publishedTelegram=await sql`SELECT message_id FROM telegram_posts WHERE content_id=${contentId}::uuid AND status='published' AND chat_id=${channelId} LIMIT 1`;
-    const telegramId=publishedTelegram[0]?.message_id?String(publishedTelegram[0].message_id):await publishTelegram(`*${pkg.title}*\n\n${pkg.summary}`,video.url);
+    const telegramId=publishedTelegram[0]?.message_id?String(publishedTelegram[0].message_id):await publishTelegram(`${pkg.title}\n\n${pkg.summary}`,video.url);
     await sql`INSERT INTO telegram_posts(content_id,message_id,chat_id,video_url,status,published_at) VALUES(${contentId}::uuid,${telegramId},${channelId},${video.url},'published',NOW()) ON CONFLICT(content_id) DO UPDATE SET message_id=EXCLUDED.message_id,chat_id=EXCLUDED.chat_id,video_url=EXCLUDED.video_url,status='published',last_error=NULL,published_at=NOW()`;
     const warnings:string[]=[];
     let youtubeVideoId:string|undefined;
@@ -122,8 +125,9 @@ export async function runHourlyPipeline(runKey=new Date().toISOString().slice(0,
     return result;
   }catch(error){
     const message=error instanceof Error?error.message:"Pipeline failed";
-    await sql`UPDATE pipeline_runs SET status='failed',last_error=${message.slice(0,2000)},updated_at=NOW() WHERE id=${runId}::uuid`;
-    await notifyError(message);
+    const awaitingBilling=isCreatomateManualFailure(error);
+    await sql`UPDATE pipeline_runs SET status=${awaitingBilling?"awaiting_billing":"failed"},last_error=${message.slice(0,2000)},updated_at=NOW() WHERE id=${runId}::uuid`;
     throw error;
   }
+  /* c8 ignore stop */
 }

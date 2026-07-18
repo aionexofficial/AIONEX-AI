@@ -4,6 +4,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { getPost, updateDelivery } from "./db";
 
 const OFFICIAL_CHANNEL_USERNAME = "aionexweb3";
+const X_PUBLISHING_ENABLED = false;
 
 function telegramToken() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -71,6 +72,7 @@ export async function notifyTelegramAdmin(text: string) {
 }
 
 export async function publishX(text: string, replyTo?: string) {
+  if (!X_PUBLISHING_ENABLED) throw new Error("X publishing is intentionally disabled.");
   const url = "https://api.x.com/2/tweets";
   const consumerKey = process.env.X_CONSUMER_KEY || process.env.X_API_KEY, consumerSecret = process.env.X_CONSUMER_SECRET || process.env.X_SECRET_KEY || process.env.X_API_SECRET, accessToken = process.env.X_ACCESS_TOKEN, accessSecret = process.env.X_ACCESS_TOKEN_SECRET;
   let authorization: string;
@@ -99,7 +101,8 @@ export async function publishPost(id: string) {
   let telegramStatus = post.telegramStatus, telegramPostId = post.telegramPostId;
   let xStatus = post.xStatus, xPostId = post.xPostId;
   if (telegramStatus !== "published") try { telegramPostId = await publishTelegram(`${post.title}\n\n${post.socialText}`); telegramStatus = "published"; } catch (error) { telegramStatus = "failed"; errors.push(error instanceof Error ? error.message : "Telegram failed"); }
-  if (xStatus !== "published") try { xPostId = await publishX(post.socialText); xStatus = "published"; } catch (error) { xStatus = "failed"; errors.push(error instanceof Error ? error.message : "X failed"); }
+  if (!X_PUBLISHING_ENABLED) xStatus = "skipped";
+  else if (xStatus !== "published") try { xPostId = await publishX(post.socialText); xStatus = "published"; } catch (error) { xStatus = "failed"; errors.push(error instanceof Error ? error.message : "X failed"); }
   // Website publication is independent; failed social deliveries remain retryable.
   const status = "published";
   return updateDelivery(id, { telegramStatus, telegramPostId, xStatus, xPostId, status, error: errors.join(" | ") || null });

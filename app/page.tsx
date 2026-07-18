@@ -5,6 +5,7 @@ import { Faq } from "./components/faq";
 import { Ecosystem } from "./components/ecosystem";
 import { Roadmap } from "./components/roadmap";
 import { Tokenomics } from "./components/tokenomics";
+import { Community } from "./components/community";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
       <Ecosystem />
       <Tokenomics />
       <Roadmap />
+      <Community />
       <Faq />
       <Footer />
     </main>

@@ -13,6 +13,7 @@
     "remotion:compositions": "remotion compositions remotion/index.ts",
     "remotion:render": "remotion render remotion/index.ts AionexIntro artifacts/remotion/aionex-intro.mp4",
     "story:preview": "node --env-file=.env.local --experimental-strip-types scripts/generate-visual-story-preview.ts",
+    "pipeline:dry-run": "node --experimental-strip-types scripts/run-local-video-dry-run.ts",
     "story:frames": "node --env-file=.env.local --experimental-strip-types scripts/generate-story-verification-frames.ts",
     "check:production-env": "node scripts/check-production-env.mjs",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
@@ -21,7 +22,9 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@rainbow-me/rainbowkit": "^2.2.11",
+    "@remotion/bundler": "4.0.490",
     "@remotion/cli": "4.0.490",
+    "@remotion/renderer": "4.0.490",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-phantom": "^0.9.29",
     "@solana/wallet-adapter-react": "^0.15.39",
@@ -36,7 +39,8 @@
     "react-dom": "19.2.4",
     "remotion": "4.0.490",
     "viem": "^2.55.0",
-    "wagmi": "^2.19.5"
+    "wagmi": "^2.19.5",
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -45,6 +49,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "^16.2.10",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

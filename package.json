@@ -9,6 +9,9 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "remotion:studio": "remotion studio remotion/index.ts",
+    "remotion:compositions": "remotion compositions remotion/index.ts",
+    "remotion:render": "remotion render remotion/index.ts AionexIntro artifacts/remotion/aionex-intro.mp4",
     "story:preview": "node --env-file=.env.local --experimental-strip-types scripts/generate-visual-story-preview.ts",
     "story:frames": "node --env-file=.env.local --experimental-strip-types scripts/generate-story-verification-frames.ts",
     "check:production-env": "node scripts/check-production-env.mjs",
@@ -18,6 +21,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
     "@rainbow-me/rainbowkit": "^2.2.11",
+    "@remotion/cli": "4.0.490",
     "@solana/wallet-adapter-base": "^0.9.27",
     "@solana/wallet-adapter-phantom": "^0.9.29",
     "@solana/wallet-adapter-react": "^0.15.39",
@@ -30,6 +34,7 @@
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "remotion": "4.0.490",
     "viem": "^2.55.0",
     "wagmi": "^2.19.5"
   },

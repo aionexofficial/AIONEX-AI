@@ -1,2 +1,2 @@
-import { logoutUser } from "@/lib/user-auth";import { isSameOrigin } from "@/lib/http/request";
-export async function POST(request:Request){if(!isSameOrigin(request))return Response.json({error:"Invalid origin."},{status:403});await logoutUser();return Response.json({ok:true})}
+import { logoutUser } from "@/lib/user-auth";import { isSameOrigin } from "@/lib/http/request";import { clearRewardSession } from "@/lib/rewards/session";
+export async function POST(request:Request){if(!isSameOrigin(request))return Response.json({error:"Invalid origin."},{status:403});await Promise.all([logoutUser(),clearRewardSession()]);return Response.json({ok:true},{headers:{"Cache-Control":"no-store"}})}

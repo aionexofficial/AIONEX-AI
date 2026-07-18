@@ -1,0 +1,22 @@
+import type { StoryScene } from "./types.ts";
+
+export const STORY_CATEGORIES = [
+  ["aion_introduction","AION character introduction"],["ecosystem_overview","AIONEX ecosystem overview"],["mini_app","Telegram Mini App features"],["tap_mining","Tap-to-earn mining"],["energy","Energy regeneration"],["tap_power","Tap power and upgrades"],["critical_combo","Critical taps and combos"],["xp_levels","XP and level progression"],["evolution","AION character evolution"],["daily_rewards","Daily rewards"],["tasks","Tasks and missions"],["referrals","Referral system"],["community","Community growth"],["leaderboards","Leaderboards"],["achievements","Achievements"],["aion_ai","AION AI assistant"],["wallet","Wallet connection"],["wallet_security","Wallet ownership security"],["account_security","Account and session security"],["product_updates","Product updates"],["roadmap","Roadmap and future vision"],["mobile_vision","Mobile application vision"],["ai_education","AI education"],["web3_education","Web3 education"],["crypto_safety","Crypto safety"],["market_context","Market news connected to AIONEX"],["weekly_summary","Weekly AIONEX summary"],["feature_demo","Feature demonstration"],["user_journey","User journey story"],["myth_fact","Myth versus fact"],["security_warning","Security warning"],["community_milestone","Community milestone"],["brand_story","AIONEX brand story"],
+] as const;
+export type StoryCategoryKey = typeof STORY_CATEGORIES[number][0];
+
+export const BACKGROUND_TEMPLATES = {
+  core_reveal:{name:"AION Core Reveal",categories:["aion_introduction","ecosystem_overview","brand_story"],elements:["energy core","AION eyes","logo lattice","cyan particles"],motion:["radial reveal","orbital rings","camera push"]},
+  mining_lab:{name:"AION Mining Lab",categories:["tap_mining","tap_power","critical_combo"],elements:["AION core","tap waves","floating rewards","energy and XP bars"],motion:["tap pulse","reward rise","combo acceleration"]},
+  energy_chamber:{name:"Energy Regeneration Chamber",categories:["energy"],elements:["energy reservoir","countdown","charge arcs","low-energy warning"],motion:["fill sweep","particle recharge","meter transition"]},
+  evolution_tunnel:{name:"Evolution Tunnel",categories:["xp_levels","evolution","achievements","leaderboards"],elements:["seven AION stages","XP rail","level badges","data tunnel"],motion:["stage morph","level flash","parallax tunnel"]},
+  mission_grid:{name:"Mission Grid",categories:["daily_rewards","tasks","feature_demo"],elements:["mission panels","claim state","streak flame","achievement badge"],motion:["panel cascade","claim burst","progress sweep"]},
+  network_map:{name:"Referral Network",categories:["referrals","community","community_milestone"],elements:["connected users","global map","milestone nodes","invitation signal"],motion:["node expansion","signal travel","celebration burst"]},
+  secure_wallet:{name:"Secure Wallet Lab",categories:["wallet","wallet_security","account_security","crypto_safety","security_warning"],elements:["wallet","signature","shield","network badge"],motion:["signature scan","shield lock","network verify"]},
+  neural_console:{name:"AION Neural Console",categories:["aion_ai","ai_education"],elements:["AION speaking","streaming text","neural graph","data particles"],motion:["voice pulse","token stream","neural bloom"]},
+  chain_market:{name:"Web3 Market Observatory",categories:["web3_education","market_context","weekly_summary"],elements:["blockchain nodes","verified charts","source labels","sentiment panel"],motion:["node flow","chart draw","source reveal"]},
+  future_city:{name:"AIONEX Future City",categories:["product_updates","roadmap","mobile_vision","user_journey"],elements:["mobile devices","futuristic city","ecosystem portals","AION beacon"],motion:["camera flythrough","portal reveal","device parallax"]},
+} as const;
+
+export function templateForCategory(category:string){return Object.entries(BACKGROUND_TEMPLATES).find(([,value])=>(value.categories as readonly string[]).includes(category))?.[0]||"core_reveal";}
+export function defaultScenePlan(duration=50,category="ecosystem_overview"):Pick<StoryScene,"position"|"purpose"|"startSeconds"|"endSeconds"|"backgroundTemplateKey">[]{const stops=[0,4,12,29,42,duration];const purposes=["hook","context","solution","demonstration","call_to_action"];return purposes.map((purpose,index)=>({position:index+1,purpose,startSeconds:stops[index],endSeconds:stops[index+1],backgroundTemplateKey:templateForCategory(category)}));}

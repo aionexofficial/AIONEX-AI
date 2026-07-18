@@ -1,0 +1,89 @@
+{
+  "scenarioKey": "visual-repair-v2-2026-07-16",
+  "title": "Meet the Intelligence That Evolves With You",
+  "provider": "creatomate",
+  "providerJobId": "56792cc2-7cb1-42ee-b070-19f13042a541",
+  "videoUrl": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/56792cc2-7cb1-42ee-b070-19f13042a541.mp4",
+  "snapshotUrl": "https://f002.backblazeb2.com/file/creatomate-c8xg3hsxdu/56792cc2-7cb1-42ee-b070-19f13042a541-snapshot.jpg",
+  "localMp4": "artifacts/story-engine/visual-story-preview.mp4",
+  "published": false,
+  "validation": {
+    "passed": true,
+    "productionReady": false,
+    "errors": [],
+    "warnings": [
+      "Creatomate enforced render scale 0.25; production output still requires 1080x1920."
+    ],
+    "requestedWidth": 1080,
+    "requestedHeight": 1920,
+    "width": 270,
+    "height": 480,
+    "renderScale": 0.25,
+    "aspectRatio": "9:16",
+    "durationSeconds": 50,
+    "fileSize": 1891597,
+    "compositionId": "aionex-story-renderscript-v2",
+    "manifest": {
+      "compositionId": "aionex-story-renderscript-v2",
+      "totalElements": 273,
+      "textCount": 20,
+      "nonTextCount": 253,
+      "textRatio": 0.07326007326007326,
+      "hasAudio": true,
+      "hasPresenter": true,
+      "hasMiniApp": true,
+      "scenes": [
+        {
+          "position": 1,
+          "elementCount": 45,
+          "nonTextCount": 42,
+          "animatedCount": 45,
+          "hasPresenter": true,
+          "hasBranding": true,
+          "hasEnvironment": true,
+          "hasPhone": false
+        },
+        {
+          "position": 2,
+          "elementCount": 56,
+          "nonTextCount": 50,
+          "animatedCount": 56,
+          "hasPresenter": true,
+          "hasBranding": true,
+          "hasEnvironment": true,
+          "hasPhone": true
+        },
+        {
+          "position": 3,
+          "elementCount": 55,
+          "nonTextCount": 51,
+          "animatedCount": 55,
+          "hasPresenter": true,
+          "hasBranding": true,
+          "hasEnvironment": true,
+          "hasPhone": false
+        },
+        {
+          "position": 4,
+          "elementCount": 63,
+          "nonTextCount": 61,
+          "animatedCount": 63,
+          "hasPresenter": true,
+          "hasBranding": true,
+          "hasEnvironment": true,
+          "hasPhone": false
+        },
+        {
+          "position": 5,
+          "elementCount": 53,
+          "nonTextCount": 48,
+          "animatedCount": 53,
+          "hasPresenter": true,
+          "hasBranding": true,
+          "hasEnvironment": true,
+          "hasPhone": true
+        }
+      ]
+    }
+  }
+}

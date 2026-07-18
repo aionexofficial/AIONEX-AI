@@ -1,9 +1,10 @@
 import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import { parseOpenAIJsonText } from "./openai";
 
 const db = () => { if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured."); return neon(process.env.DATABASE_URL); };
-export type JobType = "news.collect" | "market.analyze" | "content.generate" | "post.daily" | "youtube.script" | "hourly.pipeline";
+export type JobType = "news.collect" | "market.analyze" | "content.generate" | "post.daily" | "youtube.script" | "hourly.pipeline" | "story.daily";
 
 export async function enqueue(jobType: JobType, payload: Record<string, unknown> = {}, idempotencyKey?: string, runAt = new Date()) {
   const rows = await db()`INSERT INTO scheduled_jobs(job_type,payload,idempotency_key,run_at) VALUES(${jobType},${JSON.stringify(payload)}::jsonb,${idempotencyKey ?? null},${runAt.toISOString()}) ON CONFLICT(idempotency_key) DO UPDATE SET updated_at=NOW() RETURNING *`;
@@ -27,22 +28,29 @@ async function content(payload: Record<string, unknown>) {
   const recent = await db()`SELECT title FROM generated_content ORDER BY created_at DESC LIMIT 50`;
   const response = await fetch("https://api.openai.com/v1/responses", { method:"POST", signal:AbortSignal.timeout(45000), headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,"Content-Type":"application/json"}, body:JSON.stringify({model:process.env.OPENAI_AUTOMATION_MODEL || process.env.OPENAI_MODEL || "gpt-5-mini",instructions:"Write accurate, original AIONEX educational content. Do not invent live facts, prices, partnerships, or returns. Return JSON only.",input:`Create one ${format} about ${topic}. Avoid these recent titles: ${recent.map(r=>String(r.title)).join(" | ")}.`,text:{format:{type:"json_schema",name:"content",strict:true,schema:{type:"object",additionalProperties:false,required:["title","body"],properties:{title:{type:"string"},body:{type:"string"}}}}}}) });
   if (!response.ok) throw new Error(`OpenAI returned ${response.status}`);
-  const out = await response.json() as {output_text?:string}; if (!out.output_text) throw new Error("OpenAI returned no content.");
-  const generated = JSON.parse(out.output_text) as {title:string;body:string};
+  const out = await response.json() as {output_text?:string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }>};
+  const text = parseOpenAIJsonText(out);
+  if (!text) throw new Error("OpenAI returned no content.");
+  const generated = JSON.parse(text) as {title:string;body:string};
   const hash = createHash("sha256").update(`${topic}\0${format}\0${generated.title}\0${generated.body}`).digest("hex");
   const rows = await db()`INSERT INTO generated_content(content_hash,topic,format,title,body) VALUES(${hash},${topic},${format},${generated.title},${generated.body}) ON CONFLICT(content_hash) DO NOTHING RETURNING id`;
   if (!rows[0]) throw new Error("Generated content duplicates existing content."); return { contentId: rows[0].id };
 }
 
-async function execute(type: string, payload: Record<string, unknown>) { if(type==="hourly.pipeline"){const {runHourlyPipeline}=await import("./pipeline");return runHourlyPipeline(String(payload.runKey||new Date().toISOString().slice(0,13)));} if (type === "market.analyze") return market(); if (type === "content.generate" || type === "youtube.script") return content(payload); if (type === "post.daily") { const { GET } = await import("@/app/api/cron/daily-post/route"); const response = await GET(new Request("http://internal",{headers:{authorization:`Bearer ${process.env.CRON_SECRET}`}})); if (!response.ok) throw new Error(`Daily post failed (${response.status})`); return { published:true }; } throw new Error(`Unsupported job type: ${type}`); }
+async function execute(type: string, payload: Record<string, unknown>) { if(type==="story.daily"){const day=String(payload.day||new Date().toISOString().slice(0,10)),{generateDailyStory,storySettings}=await import("@/lib/story/service"),generated=await generateDailyStory(day),settings=await storySettings();let render:unknown,published:unknown;const scenarioId=String(generated.id);if(settings.renderingEnabled){const renderer=await import("@/lib/story/render");render=await renderer.renderPrivateStoryPreview(scenarioId,settings.voice);}if(settings.publishingEnabled&&!settings.dryRun&&!settings.previewOnly){const delivery=await import("@/lib/story/delivery");published=await delivery.publishStoryScenario(scenarioId);}return{generated,render,published};} if(type==="hourly.pipeline"){const {runHourlyPipeline}=await import("./pipeline");return runHourlyPipeline(String(payload.runKey||new Date().toISOString().slice(0,13)));} if (type === "market.analyze") return market(); if (type === "content.generate" || type === "youtube.script") return content(payload); if (type === "post.daily") { const { GET } = await import("@/app/api/cron/daily-post/route"); const response = await GET(new Request("http://internal",{headers:{authorization:`Bearer ${process.env.CRON_SECRET}`}})); if (!response.ok) throw new Error(`Daily post failed (${response.status})`); return { published:true }; } throw new Error(`Unsupported job type: ${type}`); }
 
 export async function runWorker(limit = 5) {
   const worker = randomUUID(); const scheduler = await db()`SELECT value FROM automation_settings WHERE key='scheduler'`;
   if (scheduler[0]?.value?.paused === true) return { paused:true, processed:0 };
   const jobs = await db()`UPDATE scheduled_jobs SET status='running',locked_at=NOW(),locked_by=${worker},attempts=attempts+1,updated_at=NOW() WHERE id IN (SELECT id FROM scheduled_jobs WHERE status IN ('queued','retry') AND run_at<=NOW() ORDER BY priority DESC,run_at FOR UPDATE SKIP LOCKED LIMIT ${Math.min(Math.max(limit,1),20)}) RETURNING *`;
   let completed=0, failed=0;
-  for (const job of jobs) try { const result=await execute(String(job.job_type), job.payload as Record<string,unknown>); await db()`UPDATE scheduled_jobs SET status='completed',completed_at=NOW(),updated_at=NOW(),locked_at=NULL,locked_by=NULL WHERE id=${job.id}`; await log("job.completed",String(job.id),undefined,result); completed++; } catch(error) { const message=error instanceof Error?error.message:"Unknown job failure"; const dead=Number(job.attempts)>=Number(job.max_attempts); const delay=Math.min(3600,30*2**Number(job.attempts)); await db()`UPDATE scheduled_jobs SET status=${dead?"dead":"retry"},run_at=NOW()+(${delay}*INTERVAL '1 second'),last_error=${message.slice(0,1000)},updated_at=NOW(),locked_at=NULL,locked_by=NULL WHERE id=${job.id}`; await log(dead?"job.dead":"job.retry",String(job.id),message); failed++; }
+  for (const job of jobs) try { const result=await execute(String(job.job_type), job.payload as Record<string,unknown>); await db()`UPDATE scheduled_jobs SET status='completed',completed_at=NOW(),last_error=NULL,updated_at=NOW(),locked_at=NULL,locked_by=NULL WHERE id=${job.id}`; await log("job.completed",String(job.id),undefined,result); completed++; } catch(error) { const message=error instanceof Error?error.message:"Unknown job failure"; const dead=Number(job.attempts)>=Number(job.max_attempts); const delay=Math.min(3600,30*2**Number(job.attempts)); await db()`UPDATE scheduled_jobs SET status=${dead?"dead":"retry"},run_at=NOW()+(${delay}*INTERVAL '1 second'),last_error=${message.slice(0,1000)},updated_at=NOW(),locked_at=NULL,locked_by=NULL WHERE id=${job.id}`; await log(dead?"job.dead":"job.retry",String(job.id),message); failed++; }
   return { paused:false, processed:jobs.length, completed, failed };
+}
+
+export async function jobState(id: string) {
+  const rows = await db()`SELECT id,job_type,status,attempts,last_error,completed_at FROM scheduled_jobs WHERE id=${id}::uuid LIMIT 1`;
+  return rows[0] || null;
 }
 
 export async function automationStatus() { const [jobs,logs,settings]=await Promise.all([db()`SELECT status,COUNT(*)::int count FROM scheduled_jobs GROUP BY status`,db()`SELECT * FROM automation_logs ORDER BY created_at DESC LIMIT 50`,db()`SELECT value FROM automation_settings WHERE key='scheduler'`]); return {scheduler:settings[0]?.value || {paused:false},queue:Object.fromEntries(jobs.map(x=>[String(x.status),Number(x.count)])),logs}; }

@@ -3,14 +3,71 @@ import "server-only";
 import { createHmac, randomBytes } from "node:crypto";
 import { getPost, updateDelivery } from "./db";
 
-export async function publishTelegram(text: string, videoUrl?: string) {
+const OFFICIAL_CHANNEL_USERNAME = "aionexweb3";
+
+function telegramToken() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN is not configured.");
-  const method=videoUrl?"sendVideo":"sendMessage"; const body=videoUrl?{chat_id:process.env.TELEGRAM_CHAT_ID||process.env.TELEGRAM_CHANNEL_ID||"@aionexweb3",video:videoUrl,caption:text.slice(0,1024),parse_mode:"Markdown"}:{chat_id:process.env.TELEGRAM_CHAT_ID||process.env.TELEGRAM_CHANNEL_ID||"@aionexweb3",text,parse_mode:"Markdown",disable_web_page_preview:false};
-  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, { method: "POST", signal: AbortSignal.timeout(30_000), headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const result = await response.json() as { ok?: boolean; result?: { message_id?: number }; description?: string };
-  if (!response.ok || !result.ok) throw new Error(`Telegram: ${result.description || response.statusText}`);
-  return String(result.result?.message_id || "sent");
+  return token;
+}
+
+export function telegramChannelId() {
+  const channelId = process.env.TELEGRAM_CHANNEL_ID?.trim();
+  if (!channelId) throw new Error("TELEGRAM_CHANNEL_ID is not configured.");
+  return channelId;
+}
+
+function telegramAdminChatId() {
+  const adminChatId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
+  if (!adminChatId) throw new Error("TELEGRAM_ADMIN_CHAT_ID is not configured.");
+  return adminChatId;
+}
+
+async function telegramRequest(method: string, payload: Record<string, unknown>) {
+  const response = await fetch(`https://api.telegram.org/bot${telegramToken()}/${method}`, {
+    method: "POST",
+    signal: AbortSignal.timeout(30_000),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json() as { ok?: boolean; result?: { message_id?: number; id?: number; username?: string; type?: string }; description?: string };
+  if (!response.ok || !result.ok) throw new Error(`Telegram ${method}: ${result.description || response.statusText}`);
+  return result.result;
+}
+
+let verifiedChannel: Promise<string> | undefined;
+export function verifyOfficialTelegramChannel() {
+  verifiedChannel ??= (async () => {
+    const chat = await telegramRequest("getChat", { chat_id: telegramChannelId() });
+    if (chat?.type !== "channel" || chat.username?.toLowerCase() !== OFFICIAL_CHANNEL_USERNAME) {
+      throw new Error(`TELEGRAM_CHANNEL_ID must resolve to @${OFFICIAL_CHANNEL_USERNAME}.`);
+    }
+    return String(chat.id);
+  })().catch((error) => {
+    verifiedChannel = undefined;
+    throw error;
+  });
+  return verifiedChannel;
+}
+
+export async function publishTelegram(text: string, videoUrl?: string) {
+  const channelId = await verifyOfficialTelegramChannel();
+  const method = videoUrl ? "sendVideo" : "sendMessage";
+  const body = videoUrl
+    ? { chat_id: channelId, video: videoUrl, caption: text.slice(0, 1024), parse_mode: "Markdown" }
+    : { chat_id: channelId, text, parse_mode: "Markdown", disable_web_page_preview: false };
+  const result = await telegramRequest(method, body);
+  return String(result?.message_id || "sent");
+}
+
+export async function notifyTelegramAdmin(text: string) {
+  const result = await telegramRequest("sendMessage", {
+    chat_id: telegramAdminChatId(),
+    text: text.slice(0, 4096),
+    parse_mode: "Markdown",
+    disable_web_page_preview: true,
+  });
+  return String(result?.message_id || "sent");
 }
 
 export async function publishX(text: string, replyTo?: string) {

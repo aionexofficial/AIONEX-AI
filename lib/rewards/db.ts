@@ -10,14 +10,26 @@ const referralCode = () => randomBytes(6).toString("base64url").toUpperCase();
 export async function findOrCreateIdentity(provider: "wallet" | "telegram", providerUserId: string, metadata: Record<string, unknown>, currentUserId?: string | null) {
   const db = sql();
   const existing = await db`SELECT user_id FROM reward_identities WHERE provider=${provider} AND provider_user_id=${providerUserId} LIMIT 1`;
-  if (existing[0]) return String(existing[0].user_id);
-  let userId = currentUserId;
+  let userId = existing[0] ? String(existing[0].user_id) : currentUserId;
   if (!userId) {
-    const users = await db`INSERT INTO reward_users (display_name, referral_code) VALUES (${String(metadata.username || metadata.address || "AIONEX Explorer").slice(0, 80)}, ${referralCode()}) RETURNING id`;
+    const displayName = String(metadata.firstName || metadata.username || metadata.address || "AIONEX Explorer").slice(0, 80);
+    const users = await db`INSERT INTO reward_users (display_name, referral_code) VALUES (${displayName}, ${referralCode()}) RETURNING id`;
     userId = String(users[0].id);
   }
   const linked = await db`INSERT INTO reward_identities (user_id, provider, provider_user_id, metadata) VALUES (${userId}::uuid, ${provider}, ${providerUserId}, ${JSON.stringify(metadata)}::jsonb) ON CONFLICT (provider, provider_user_id) DO UPDATE SET metadata=EXCLUDED.metadata RETURNING user_id`;
-  return String(linked[0].user_id);
+  userId = String(linked[0].user_id);
+  if (provider === "telegram") {
+    const telegramUsername = String(metadata.username || "").trim().toLowerCase();
+    const username = /^[a-z0-9_]{3,24}$/.test(telegramUsername) ? telegramUsername : null;
+    const displayName = [metadata.firstName, metadata.lastName].filter(Boolean).join(" ").trim().slice(0, 80) || username;
+    const avatar = typeof metadata.photoUrl === "string" && /^https:\/\//.test(metadata.photoUrl) ? metadata.photoUrl.slice(0, 2048) : null;
+    await db`UPDATE reward_users u SET
+      display_name=COALESCE(${displayName || null},u.display_name),
+      username=CASE WHEN ${username}::text IS NOT NULL AND NOT EXISTS(SELECT 1 FROM reward_users other WHERE LOWER(other.username)=${username} AND other.id<>u.id) THEN ${username} ELSE u.username END,
+      avatar_url=COALESCE(${avatar},u.avatar_url),last_login=NOW(),updated_at=NOW()
+      WHERE u.id=${userId}::uuid`;
+  }
+  return userId;
 }
 
 export async function getProfile(userId: string): Promise<RewardProfile | null> {
@@ -84,16 +96,22 @@ export async function rewardHistory(userId: string, limit = 50) { return sql()`S
 export async function miningStats(userId: string): Promise<{claims:number;earned:number;last_claim:string|null;cooldown_hours:number}> { const rows=await sql()`SELECT COUNT(*)::int AS claims,COALESCE(SUM(amount),0) AS earned,MAX(created_at) AS last_claim FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining'`; const cooldown=await rewardSetting("mining_cooldown_hours",24); return {claims:Number(rows[0]?.claims||0),earned:Number(rows[0]?.earned||0),last_claim:rows[0]?.last_claim?String(rows[0].last_claim):null,cooldown_hours:cooldown}; }
 
 export async function miningStatus(userId: string) {
-  const [stats, sessions] = await Promise.all([
+  const expired = await sql()`SELECT 1 FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' AND ends_at<=NOW() LIMIT 1`;
+  if (expired[0]) await stopMiningSession(userId);
+  const [stats, sessions, sessionMinutes, rewardAxp, rewardXp] = await Promise.all([
     miningStats(userId),
     sql()`SELECT id,status,started_at,ends_at,stopped_at,duration_seconds,awarded_axp,awarded_xp
       FROM reward_mining_sessions WHERE user_id=${userId}::uuid ORDER BY started_at DESC LIMIT 20`,
+    rewardSetting("mining_session_minutes", 60),
+    rewardSetting("mining_axp", Number(process.env.REWARDS_MINING_AXP || 100)),
+    rewardSetting("mining_xp", 25),
   ]);
   const session = sessions.find((row) => row.status === "active") || null;
   return {
     stats: { claims: stats.claims, earned: stats.earned, lastClaim: stats.last_claim ? new Date(stats.last_claim).toISOString() : null, cooldownHours: stats.cooldown_hours },
     session: session ? miningSessionDto(session) : null,
     history: sessions.filter((row) => row.status !== "active").map(miningSessionDto),
+    rewards: { axp: rewardAxp, xp: rewardXp, sessionMinutes },
     serverTime: new Date().toISOString(),
   };
 }
@@ -108,6 +126,8 @@ function miningSessionDto(row: Record<string, unknown>) {
 
 export async function startMiningSession(userId: string) {
   const minutes = Math.max(1, Math.min(1440, await rewardSetting("mining_session_minutes", 60)));
+  const expired = await sql()`SELECT 1 FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' AND ends_at<=NOW() LIMIT 1`;
+  if (expired[0]) await stopMiningSession(userId);
   const existing = await sql()`SELECT * FROM reward_mining_sessions WHERE user_id=${userId}::uuid AND status='active' LIMIT 1`;
   if (existing[0]) return { ok: false as const, error: "Mining is already active.", session: miningSessionDto(existing[0]) };
   const rows = await sql()`INSERT INTO reward_mining_sessions(user_id,ends_at)
@@ -132,10 +152,12 @@ export async function stopMiningSession(userId: string) {
       WHERE id=${row.id}::uuid AND status='active' RETURNING *
     ), ledger AS (
       INSERT INTO reward_point_ledger(user_id,amount,xp_awarded,reason,reference_id,idempotency_key,metadata)
-      SELECT user_id,${axp},${xp},'mining',id,${key},jsonb_build_object('durationSeconds',${Math.floor(elapsed)}) FROM closed
+      SELECT user_id,${axp},${xp},'mining',id,${key},jsonb_build_object('durationSeconds',${Math.floor(elapsed)}::int) FROM closed
       ON CONFLICT(idempotency_key) DO NOTHING RETURNING user_id,amount,xp_awarded
-    ) UPDATE reward_users u SET last_mined_at=NOW(),updated_at=NOW(),axp_balance=u.axp_balance+l.amount,lifetime_axp=u.lifetime_axp+l.amount,xp=u.xp+l.xp_awarded,level=1+FLOOR((u.xp+l.xp_awarded)/500.0)::int
-      FROM ledger l WHERE u.id=l.user_id RETURNING (SELECT row_to_json(closed) FROM closed) AS session`;
+    ), updated AS (
+      UPDATE reward_users u SET last_mined_at=NOW(),updated_at=NOW(),axp_balance=u.axp_balance+l.amount,lifetime_axp=u.lifetime_axp+l.amount,xp=u.xp+l.xp_awarded,level=1+FLOOR((u.xp+l.xp_awarded)/500.0)::int
+      FROM ledger l WHERE u.id=l.user_id RETURNING u.id
+    ) SELECT row_to_json(closed) AS session FROM closed JOIN updated ON updated.id=closed.user_id`;
   if (!completed[0]?.session) return { ok: false as const, error: "Mining session was already completed." };
   await evaluateBadges(userId);
   return { ok: true as const, session: miningSessionDto(completed[0].session as Record<string, unknown>) };
@@ -153,12 +175,14 @@ export async function consumeLinkCode(code: string, telegramId: string, metadata
   return findOrCreateIdentity("telegram", telegramId, metadata, String(rows[0].user_id));
 }
 
-export async function applyReferral(userId: string, code: string) {
+export async function applyReferral(userId: string, code: string, deviceHash?: string | null, ipHash?: string | null) {
   const referrerAxp = await rewardSetting("referrer_axp", Number(process.env.REWARDS_REFERRER_AXP || 100));
   const referredAxp = await rewardSetting("referred_axp", Number(process.env.REWARDS_REFERRED_AXP || 50));
   const rows = await sql()`WITH referral AS (
     SELECT u.id AS user_id,r.id AS referrer_id FROM reward_users u JOIN reward_users r ON r.referral_code=${code}
     WHERE u.id=${userId}::uuid AND u.status='active' AND u.referred_by IS NULL AND r.status='active' AND r.id<>u.id
+      AND NOT EXISTS(SELECT 1 FROM aion_referral_events existing WHERE existing.referred_user_id=u.id)
+      AND (${deviceHash||null}::text IS NULL OR NOT EXISTS(SELECT 1 FROM aion_referral_events device_event WHERE device_event.device_hash=${deviceHash||null} AND device_event.referred_user_id<>u.id))
     FOR UPDATE OF u,r
   ), ledger AS (
     INSERT INTO reward_point_ledger(user_id,amount,reason,reference_id,idempotency_key)
@@ -168,7 +192,14 @@ export async function applyReferral(userId: string, code: string) {
       (r.user_id,${referredAxp}::bigint,r.referrer_id,'referred:'||r.user_id)
     ) AS awards(user_id,amount,reference_id,idempotency_key)
     ON CONFLICT(idempotency_key) DO NOTHING
-    RETURNING user_id,amount
+    RETURNING user_id,amount,reference_id,idempotency_key
+  ), economy AS (
+    INSERT INTO aion_economy_transactions(user_id,transaction_type,axp_delta,reference_type,reference_id,idempotency_key,metadata)
+    SELECT user_id,'referral_reward',amount,'referral',reference_id,'aion:'||idempotency_key,jsonb_build_object('referralCode',${code}::text) FROM ledger
+    ON CONFLICT(idempotency_key) DO NOTHING RETURNING id
+  ), referral_event AS (
+    INSERT INTO aion_referral_events(referred_user_id,referrer_user_id,device_hash,ip_hash)
+    SELECT user_id,referrer_id,${deviceHash||null},${ipHash||null} FROM referral ON CONFLICT(referred_user_id) DO NOTHING RETURNING id
   ), totals AS (
     SELECT user_id,SUM(amount) AS amount FROM ledger GROUP BY user_id
   )
@@ -193,7 +224,7 @@ export async function claimTask(userId: string, taskId: string, evidence: Record
   return claims[0];
 }
 export async function taskVerificationContext(userId:string,taskId:string){const [tasks,identities]=await Promise.all([sql()`SELECT * FROM reward_tasks WHERE id=${taskId}::uuid AND enabled=TRUE LIMIT 1`,sql()`SELECT provider,provider_user_id FROM reward_identities WHERE user_id=${userId}::uuid`]);return tasks[0]?{task:tasks[0],identities}:null;}
-export async function systemTaskEligible(userId:string,category:string){if(category==="daily_login")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='daily_login' AND created_at::date=CURRENT_DATE LIMIT 1`)[0]);if(category==="daily_mining")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining' AND created_at>=NOW()-INTERVAL '24 hours' LIMIT 1`)[0]);if(category==="referral_invite")return Boolean((await sql()`SELECT 1 FROM reward_users WHERE referred_by=${userId}::uuid LIMIT 1`)[0]);return false;}
+export async function systemTaskEligible(userId:string,category:string,config:Record<string,unknown>={}){if(category==="daily_login")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='daily_login' AND created_at::date=CURRENT_DATE LIMIT 1`)[0]);if(category==="daily_mining")return Boolean((await sql()`SELECT 1 FROM reward_point_ledger WHERE user_id=${userId}::uuid AND reason='mining' AND created_at>=NOW()-INTERVAL '24 hours' LIMIT 1`)[0]);if(category==="referral_invite")return Boolean((await sql()`SELECT 1 FROM reward_users WHERE referred_by=${userId}::uuid LIMIT 1`)[0]);if(category==="tap_milestone"){const required=Math.max(1,Math.min(100000000,Number(config.requiredTaps||1)));return Boolean((await sql()`SELECT 1 FROM aion_character_profiles WHERE user_id=${userId}::uuid AND total_taps>=${required} LIMIT 1`)[0]);}if(category==="ai_chat"){const required=Math.max(2,Math.min(100,Number(config.requiredMessages||2)));return Boolean((await sql()`SELECT 1 FROM aion_ai_conversations c WHERE c.user_id=${userId}::uuid AND (SELECT COUNT(*) FROM aion_ai_messages m WHERE m.conversation_id=c.id)>=${required} LIMIT 1`)[0]);}if(category==="referral_milestone"){const required=Math.max(1,Math.min(10000,Number(config.requiredReferrals||1)));return Boolean((await sql()`SELECT 1 FROM reward_users WHERE referred_by=${userId}::uuid GROUP BY referred_by HAVING COUNT(*)>=${required}`)[0]);}if(category==="achievement_milestone"){const required=Math.max(1,Math.min(10000,Number(config.requiredAchievements||1)));return Boolean((await sql()`SELECT 1 FROM reward_user_badges WHERE user_id=${userId}::uuid GROUP BY user_id HAVING COUNT(*)>=${required}`)[0]);}return false;}
 export async function completePendingTask(userId:string,taskId:string,message:string){const rows=await sql()`UPDATE reward_task_claims SET status='verified',verified_at=NOW(),verification_message=${message},awarded_axp=(SELECT reward_axp FROM reward_tasks WHERE id=task_id) WHERE id=(SELECT id FROM reward_task_claims WHERE user_id=${userId}::uuid AND task_id=${taskId}::uuid AND status IN ('pending','review') ORDER BY created_at DESC LIMIT 1) RETURNING id,awarded_axp,(SELECT reward_xp FROM reward_tasks WHERE id=task_id) AS reward_xp,(SELECT category FROM reward_tasks WHERE id=task_id) AS category`;if(!rows[0])return null;await awardPoints(userId,Number(rows[0].awarded_axp),"task",String(rows[0].id),`task:${rows[0].id}`,Number(rows[0].reward_xp));const provider=socialProvider(String(rows[0].category));if(provider)await recordSocialVerification(userId,provider,String(rows[0].id),true,Number(rows[0].awarded_axp),{message});await evaluateBadges(userId);return rows[0];}
 
 export async function awardPoints(userId: string, amount: number, reason: "task" | "referral" | "achievement" | "admin_adjustment", referenceId: string, idempotencyKey: string,xpOverride?:number) {
@@ -207,7 +238,7 @@ export async function evaluateBadges(userId: string) { await sql()`INSERT INTO r
 
 async function rewardSetting(key: string, fallback: number) { const rows=await sql()`SELECT value FROM reward_settings WHERE key=${key}`; return rows[0]?Number(rows[0].value):fallback; }
 export async function adminRewardSettings(){return sql()`SELECT key,value FROM reward_settings ORDER BY key`;}
-export async function adminUpdateRewardSettings(settings:Record<string,number>,admin:string){for(const [key,value] of Object.entries(settings)){if(!["mining_axp","mining_cooldown_hours","mining_xp","daily_login_axp","daily_login_xp","task_xp_percent","referrer_axp","referred_axp"].includes(key)||!Number.isInteger(value)||value<0||value>100000)throw new Error("Invalid reward setting.");await sql()`INSERT INTO reward_settings(key,value,updated_by,updated_at) VALUES(${key},${value},${admin},NOW()) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_by=EXCLUDED.updated_by,updated_at=NOW()`;}return adminRewardSettings();}
+export async function adminUpdateRewardSettings(settings:Record<string,number>,admin:string){const allowed=["mining_axp","mining_cooldown_hours","mining_xp","mining_session_minutes","daily_login_axp","daily_login_xp","task_xp_percent","referrer_axp","referred_axp","aion_economy_version","aion_earning_paused","aion_max_batch_taps","aion_max_taps_per_second","aion_energy_cost_per_tap","aion_default_max_energy","aion_energy_regen_amount","aion_energy_regen_interval_seconds","aion_base_tap_power","aion_tap_xp","aion_critical_chance_bps","aion_critical_multiplier_bps"];for(const [key,value] of Object.entries(settings)){if(!allowed.includes(key)||!Number.isInteger(value)||value<0||value>100000)throw new Error("Invalid reward setting.");const before=await sql()`SELECT value FROM reward_settings WHERE key=${key}`;await sql()`INSERT INTO reward_settings(key,value,updated_by,updated_at) VALUES(${key},${value},${admin},NOW()) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_by=EXCLUDED.updated_by,updated_at=NOW()`;if(Number(before[0]?.value)!==value)await sql()`INSERT INTO aion_admin_audit_logs(admin_username,action,target_type,target_id,before_state,after_state) VALUES(${admin},'update_economy_setting','reward_setting',${key},jsonb_build_object('value',${before[0]?.value===undefined?null:Number(before[0].value)}),jsonb_build_object('value',${value}))`;}return adminRewardSettings();}
 
 export async function adminListTasks() { return sql()`SELECT t.*,(SELECT COUNT(*)::int FROM reward_task_claims c WHERE c.task_id=t.id AND c.status='verified') AS completion_count FROM reward_tasks t ORDER BY sort_order,created_at DESC`; }
 export type TaskInput={category:TaskCategory;group:TaskGroup;title:string;description:string;icon:string;rewardAxp:number;rewardXp:number;difficulty:TaskDifficulty;enabled:boolean;repeatMode:string;cooldownHours?:number|null;verificationMode:VerificationMode;verificationConfig?:Record<string,unknown>;taskUrl?:string|null};

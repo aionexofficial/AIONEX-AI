@@ -7,7 +7,7 @@ export async function verifyTask(userId:string,taskId:string):Promise<Verificati
  const task=context.task,category=String(task.category),config=(task.verification_config||{}) as Record<string,unknown>;
  if(category==="wallet_connect")return context.identities.some(i=>i.provider==="wallet")?{verified:true,message:"Connected wallet identity verified."}:{verified:false,message:"Connect and verify a wallet first."};
  if(category==="website_visit")return{verified:true,message:"Website visit recorded."};
- if(["daily_login","daily_mining","referral_invite"].includes(category))return await systemTaskEligible(userId,category)?{verified:true,message:"Existing platform activity verified."}:{verified:false,message:"Complete the required platform activity first."};
+ if(["daily_login","daily_mining","referral_invite","tap_milestone","ai_chat","referral_milestone","achievement_milestone"].includes(category))return await systemTaskEligible(userId,category,config)?{verified:true,message:"Existing platform activity verified."}:{verified:false,message:"Complete the required platform activity first."};
  if(category==="telegram_join"||category==="telegram_group_join"){
    const telegram=context.identities.find(i=>i.provider==="telegram");if(!telegram)return{verified:false,message:"Link Telegram to your rewards account first."};
    const chatId=String(config.channelId||config.groupId||"");const envKey=String(config.botTokenEnv||"TELEGRAM_BOT_TOKEN");const token=process.env[envKey];

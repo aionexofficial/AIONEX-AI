@@ -22,3 +22,7 @@ export async function setRewardSession(userId: string) {
   const signature = createHmac("sha256", secret()).update(payload).digest("base64url");
   (await cookies()).set(COOKIE, `${payload}.${signature}`, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: TTL, priority: "high" });
 }
+
+export async function clearRewardSession() {
+  (await cookies()).delete(COOKIE);
+}

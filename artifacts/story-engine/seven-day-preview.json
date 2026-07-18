@@ -1,0 +1,1015 @@
+{
+  "generatedAt": "2026-07-14T23:50:47.872Z",
+  "mode": "private-preview-only",
+  "published": false,
+  "scenarios": [
+    {
+      "scenarioKey": "week1-2026-07-15-1",
+      "categoryKey": "ecosystem_overview",
+      "topic": "What is AIONEX?",
+      "title": "Meet the Intelligence That Evolves With You",
+      "hook": "What if your AI grew stronger every time you showed up?",
+      "narration": "What if your AI grew stronger every time you showed up? Most digital tools stay exactly the same, no matter how you use them. AIONEX connects a personal AION character with verified activity, learning, missions, and community progress. Inside the Telegram Mini App, your taps use energy, add AXP and XP, and move AION through visible evolution stages. Open AIONEX and begin building an intelligence that reflects your journey.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "MEET THE INTELLIGENCE THAT EVOLVES WITH YOU",
+      "telegramCaption": "Meet the Intelligence That Evolves With You\n\nOpen AIONEX in Telegram and awaken your AION.\n\n#AIONEX #AION",
+      "youtubeTitle": "Meet the Intelligence That Evolves With You | AIONEX",
+      "youtubeDescription": "What if your AI grew stronger every time you showed up? Most digital tools stay exactly the same, no matter how you use them. AIONEX connects a personal AION character with verified activity, learning, missions, and community progress. Inside the Telegram Mini App, your taps use energy, add AXP and XP, and move AION through visible evolution stages. Open AIONEX and begin building an intelligence that reflects your journey.\n\nOpen AIONEX in Telegram and awaken your AION.\n\nEducational content. No investment advice.",
+      "xCaption": "What if your AI grew stronger every time you showed up? Open AIONEX in Telegram and awaken your AION.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "ecosystemoverview"
+      ],
+      "callToAction": "Open AIONEX in Telegram and awaken your AION.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "core_reveal",
+          "narration": "What if your AI grew stronger every time you showed up?",
+          "onScreenText": "What if your AI grew stronger every time you showed up?",
+          "subtitleText": "What if your AI grew stronger every time you showed up?",
+          "visualInstructions": [
+            "Use core_reveal with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "core_reveal",
+          "narration": "Most digital tools stay exactly the same, no matter how you use them.",
+          "onScreenText": "Most digital tools stay exactly the same, no matter how you use them",
+          "subtitleText": "Most digital tools stay exactly the same, no matter how you use them.",
+          "visualInstructions": [
+            "Use core_reveal with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "core_reveal",
+          "narration": "AIONEX connects a personal AION character with verified activity, learning, missions, and community progress.",
+          "onScreenText": "AIONEX connects a personal AION character with verified activity, learning, missions, and community progress",
+          "subtitleText": "AIONEX connects a personal AION character with verified activity, learning, missions, and community progress.",
+          "visualInstructions": [
+            "Use core_reveal with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "core_reveal",
+          "narration": "Inside the Telegram Mini App, your taps use energy, add AXP and XP, and move AION through visible evolution stages.",
+          "onScreenText": "Inside the Telegram Mini App, your taps use energy, add AXP and XP, and move AION through visible evolution stages",
+          "subtitleText": "Inside the Telegram Mini App, your taps use energy, add AXP and XP, and move AION through visible evolution stages.",
+          "visualInstructions": [
+            "Use core_reveal with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "core_reveal",
+          "narration": "Open AIONEX and begin building an intelligence that reflects your journey.",
+          "onScreenText": "Open AIONEX and begin building an intelligence that reflects your journey",
+          "subtitleText": "Open AIONEX and begin building an intelligence that reflects your journey.",
+          "visualInstructions": [
+            "Use core_reveal with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 95,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 90.9,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 0
+    },
+    {
+      "scenarioKey": "week1-2026-07-15-2",
+      "categoryKey": "tap_mining",
+      "topic": "How tap-to-earn mining works",
+      "title": "Every Verified Tap Moves AION Forward",
+      "hook": "A tap is small. A verified streak of taps can transform AION.",
+      "narration": "A tap is small. A verified streak of taps can transform AION. Tap-to-earn should feel immediate without trusting an unverified client counter. AIONEX reacts instantly, batches your taps safely, and reconciles rewards with the server. Energy falls as you tap, AXP and XP advance, while critical taps and combos create stronger moments. Tap AION, watch the response, and build progress one verified action at a time.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "EVERY VERIFIED TAP MOVES AION FORWARD",
+      "telegramCaption": "Every Verified Tap Moves AION Forward\n\nOpen the Mine tab and send your first verified signal.\n\n#AIONEX #AION",
+      "youtubeTitle": "Every Verified Tap Moves AION Forward | AIONEX",
+      "youtubeDescription": "A tap is small. A verified streak of taps can transform AION. Tap-to-earn should feel immediate without trusting an unverified client counter. AIONEX reacts instantly, batches your taps safely, and reconciles rewards with the server. Energy falls as you tap, AXP and XP advance, while critical taps and combos create stronger moments. Tap AION, watch the response, and build progress one verified action at a time.\n\nOpen the Mine tab and send your first verified signal.\n\nEducational content. No investment advice.",
+      "xCaption": "A tap is small. A verified streak of taps can transform AION. Open the Mine tab and send your first verified signal.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "tapmining"
+      ],
+      "callToAction": "Open the Mine tab and send your first verified signal.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "mining_lab",
+          "narration": "A tap is small. A verified streak of taps can transform AION.",
+          "onScreenText": "A tap is small. A verified streak of taps can transform AION.",
+          "subtitleText": "A tap is small. A verified streak of taps can transform AION.",
+          "visualInstructions": [
+            "Use mining_lab with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "mining_lab",
+          "narration": "Tap-to-earn should feel immediate without trusting an unverified client counter.",
+          "onScreenText": "Tap-to-earn should feel immediate without trusting an unverified client counter",
+          "subtitleText": "Tap-to-earn should feel immediate without trusting an unverified client counter.",
+          "visualInstructions": [
+            "Use mining_lab with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "mining_lab",
+          "narration": "AIONEX reacts instantly, batches your taps safely, and reconciles rewards with the server.",
+          "onScreenText": "AIONEX reacts instantly, batches your taps safely, and reconciles rewards with the server",
+          "subtitleText": "AIONEX reacts instantly, batches your taps safely, and reconciles rewards with the server.",
+          "visualInstructions": [
+            "Use mining_lab with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "mining_lab",
+          "narration": "Energy falls as you tap, AXP and XP advance, while critical taps and combos create stronger moments.",
+          "onScreenText": "Energy falls as you tap, AXP and XP advance, while critical taps and combos create stronger moments",
+          "subtitleText": "Energy falls as you tap, AXP and XP advance, while critical taps and combos create stronger moments.",
+          "visualInstructions": [
+            "Use mining_lab with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "mining_lab",
+          "narration": "Tap AION, watch the response, and build progress one verified action at a time.",
+          "onScreenText": "Tap AION, watch the response, and build progress one verified action at a time",
+          "subtitleText": "Tap AION, watch the response, and build progress one verified action at a time.",
+          "visualInstructions": [
+            "Use mining_lab with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 70,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 88.4,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 7.91
+    },
+    {
+      "scenarioKey": "week1-2026-07-15-3",
+      "categoryKey": "evolution",
+      "topic": "How AION evolves with levels",
+      "title": "Seven Forms. One AION Journey",
+      "hook": "Your AION is not a static icon—it has seven forms to unlock.",
+      "narration": "Your AION is not a static icon—it has seven forms to unlock. Progress without visible change quickly loses meaning. AIONEX turns XP and levels into a clear evolution path from Core and Spark to Drone, Guardian, Quantum, Ascendant, and Prime. Each stage has its own energy form, motion language, and milestone range. Build XP through verified activity and discover which form your AION becomes next.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "SEVEN FORMS. ONE AION JOURNEY",
+      "telegramCaption": "Seven Forms. One AION Journey\n\nCheck your Profile to preview every AION evolution stage.\n\n#AIONEX #AION",
+      "youtubeTitle": "Seven Forms. One AION Journey | AIONEX",
+      "youtubeDescription": "Your AION is not a static icon—it has seven forms to unlock. Progress without visible change quickly loses meaning. AIONEX turns XP and levels into a clear evolution path from Core and Spark to Drone, Guardian, Quantum, Ascendant, and Prime. Each stage has its own energy form, motion language, and milestone range. Build XP through verified activity and discover which form your AION becomes next.\n\nCheck your Profile to preview every AION evolution stage.\n\nEducational content. No investment advice.",
+      "xCaption": "Your AION is not a static icon—it has seven forms to unlock. Check your Profile to preview every AION evolution stage.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "evolution"
+      ],
+      "callToAction": "Check your Profile to preview every AION evolution stage.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "evolution_tunnel",
+          "narration": "Your AION is not a static icon—it has seven forms to unlock.",
+          "onScreenText": "Your AION is not a static icon—it has seven forms to unlock.",
+          "subtitleText": "Your AION is not a static icon—it has seven forms to unlock.",
+          "visualInstructions": [
+            "Use evolution_tunnel with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "evolution_tunnel",
+          "narration": "Progress without visible change quickly loses meaning.",
+          "onScreenText": "Progress without visible change quickly loses meaning",
+          "subtitleText": "Progress without visible change quickly loses meaning.",
+          "visualInstructions": [
+            "Use evolution_tunnel with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "evolution_tunnel",
+          "narration": "AIONEX turns XP and levels into a clear evolution path from Core and Spark to Drone, Guardian, Quantum, Ascendant, and Prime.",
+          "onScreenText": "AIONEX turns XP and levels into a clear evolution path from Core and Spark to Drone, Guardian, Quantum, Ascendant, and Prime",
+          "subtitleText": "AIONEX turns XP and levels into a clear evolution path from Core and Spark to Drone, Guardian, Quantum, Ascendant, and Prime.",
+          "visualInstructions": [
+            "Use evolution_tunnel with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "evolution_tunnel",
+          "narration": "Each stage has its own energy form, motion language, and milestone range.",
+          "onScreenText": "Each stage has its own energy form, motion language, and milestone range",
+          "subtitleText": "Each stage has its own energy form, motion language, and milestone range.",
+          "visualInstructions": [
+            "Use evolution_tunnel with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "evolution_tunnel",
+          "narration": "Build XP through verified activity and discover which form your AION becomes next.",
+          "onScreenText": "Build XP through verified activity and discover which form your AION becomes next",
+          "subtitleText": "Build XP through verified activity and discover which form your AION becomes next.",
+          "visualInstructions": [
+            "Use evolution_tunnel with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 95,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 90.9,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 7.42
+    },
+    {
+      "scenarioKey": "week1-2026-07-15-4",
+      "categoryKey": "energy",
+      "topic": "How energy regeneration works",
+      "title": "AION Energy Always Has a Rhythm",
+      "hook": "Low energy is not the end of mining—it is part of the strategy.",
+      "narration": "Low energy is not the end of mining—it is part of the strategy. Repeated taps consume energy so progress stays bounded and server-authoritative. AIONEX restores energy over time, including safe offline regeneration with a configured cap. The live meter shows what remains, while regeneration timing tells you when AION is ready again. Use your energy, let the core recharge, and return for the next session.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "AION ENERGY ALWAYS HAS A RHYTHM",
+      "telegramCaption": "AION Energy Always Has a Rhythm\n\nOpen AIONEX and check your live energy chamber.\n\n#AIONEX #AION",
+      "youtubeTitle": "AION Energy Always Has a Rhythm | AIONEX",
+      "youtubeDescription": "Low energy is not the end of mining—it is part of the strategy. Repeated taps consume energy so progress stays bounded and server-authoritative. AIONEX restores energy over time, including safe offline regeneration with a configured cap. The live meter shows what remains, while regeneration timing tells you when AION is ready again. Use your energy, let the core recharge, and return for the next session.\n\nOpen AIONEX and check your live energy chamber.\n\nEducational content. No investment advice.",
+      "xCaption": "Low energy is not the end of mining—it is part of the strategy. Open AIONEX and check your live energy chamber.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "energy"
+      ],
+      "callToAction": "Open AIONEX and check your live energy chamber.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "energy_chamber",
+          "narration": "Low energy is not the end of mining—it is part of the strategy.",
+          "onScreenText": "Low energy is not the end of mining—it is part of the strategy.",
+          "subtitleText": "Low energy is not the end of mining—it is part of the strategy.",
+          "visualInstructions": [
+            "Use energy_chamber with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "energy_chamber",
+          "narration": "Repeated taps consume energy so progress stays bounded and server-authoritative.",
+          "onScreenText": "Repeated taps consume energy so progress stays bounded and server-authoritative",
+          "subtitleText": "Repeated taps consume energy so progress stays bounded and server-authoritative.",
+          "visualInstructions": [
+            "Use energy_chamber with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "energy_chamber",
+          "narration": "AIONEX restores energy over time, including safe offline regeneration with a configured cap.",
+          "onScreenText": "AIONEX restores energy over time, including safe offline regeneration with a configured cap",
+          "subtitleText": "AIONEX restores energy over time, including safe offline regeneration with a configured cap.",
+          "visualInstructions": [
+            "Use energy_chamber with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "energy_chamber",
+          "narration": "The live meter shows what remains, while regeneration timing tells you when AION is ready again.",
+          "onScreenText": "The live meter shows what remains, while regeneration timing tells you when AION is ready again",
+          "subtitleText": "The live meter shows what remains, while regeneration timing tells you when AION is ready again.",
+          "visualInstructions": [
+            "Use energy_chamber with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "energy_chamber",
+          "narration": "Use your energy, let the core recharge, and return for the next session.",
+          "onScreenText": "Use your energy, let the core recharge, and return for the next session",
+          "subtitleText": "Use your energy, let the core recharge, and return for the next session.",
+          "visualInstructions": [
+            "Use energy_chamber with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 95,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 90.9,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 9.42
+    },
+    {
+      "scenarioKey": "week1-2026-07-15-5",
+      "categoryKey": "tasks",
+      "topic": "How tasks and daily rewards work",
+      "title": "Missions Give Every Day a Direction",
+      "hook": "AION grows through more than tapping.",
+      "narration": "AION grows through more than tapping. A daily experience needs useful goals, not an endless list of random actions. AIONEX missions show the reward, progress, verification method, and claim state before you act. Daily rewards build streaks, while verified milestones unlock AXP, XP, and achievements without client-only claims. Choose a mission, complete its proof, and let AION celebrate the result.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "MISSIONS GIVE EVERY DAY A DIRECTION",
+      "telegramCaption": "Missions Give Every Day a Direction\n\nOpen Tasks and choose today’s verified mission.\n\n#AIONEX #AION",
+      "youtubeTitle": "Missions Give Every Day a Direction | AIONEX",
+      "youtubeDescription": "AION grows through more than tapping. A daily experience needs useful goals, not an endless list of random actions. AIONEX missions show the reward, progress, verification method, and claim state before you act. Daily rewards build streaks, while verified milestones unlock AXP, XP, and achievements without client-only claims. Choose a mission, complete its proof, and let AION celebrate the result.\n\nOpen Tasks and choose today’s verified mission.\n\nEducational content. No investment advice.",
+      "xCaption": "AION grows through more than tapping. Open Tasks and choose today’s verified mission.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "tasks"
+      ],
+      "callToAction": "Open Tasks and choose today’s verified mission.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "mission_grid",
+          "narration": "AION grows through more than tapping.",
+          "onScreenText": "AION grows through more than tapping.",
+          "subtitleText": "AION grows through more than tapping.",
+          "visualInstructions": [
+            "Use mission_grid with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "mission_grid",
+          "narration": "A daily experience needs useful goals, not an endless list of random actions.",
+          "onScreenText": "A daily experience needs useful goals, not an endless list of random actions",
+          "subtitleText": "A daily experience needs useful goals, not an endless list of random actions.",
+          "visualInstructions": [
+            "Use mission_grid with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "mission_grid",
+          "narration": "AIONEX missions show the reward, progress, verification method, and claim state before you act.",
+          "onScreenText": "AIONEX missions show the reward, progress, verification method, and claim state before you act",
+          "subtitleText": "AIONEX missions show the reward, progress, verification method, and claim state before you act.",
+          "visualInstructions": [
+            "Use mission_grid with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "mission_grid",
+          "narration": "Daily rewards build streaks, while verified milestones unlock AXP, XP, and achievements without client-only claims.",
+          "onScreenText": "Daily rewards build streaks, while verified milestones unlock AXP, XP, and achievements without client-only claims",
+          "subtitleText": "Daily rewards build streaks, while verified milestones unlock AXP, XP, and achievements without client-only claims.",
+          "visualInstructions": [
+            "Use mission_grid with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "mission_grid",
+          "narration": "Choose a mission, complete its proof, and let AION celebrate the result.",
+          "onScreenText": "Choose a mission, complete its proof, and let AION celebrate the result",
+          "subtitleText": "Choose a mission, complete its proof, and let AION celebrate the result.",
+          "visualInstructions": [
+            "Use mission_grid with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 70,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 88.4,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 11.03
+    },
+    {
+      "scenarioKey": "week1-2026-07-15-6",
+      "categoryKey": "referrals",
+      "topic": "How referrals grow the community",
+      "title": "One Invitation Can Become a Network",
+      "hook": "Community growth should reward real people, not repeated devices.",
+      "narration": "Community growth should reward real people, not repeated devices. Referral systems lose trust when duplicate accounts can claim the same reward. AIONEX gives every creator a unique link and records verified joins with cross-account abuse protection. The network view tracks invited users, milestone progress, and community rewards. Share your signal with one trusted friend and grow the AIONEX network safely.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "ONE INVITATION CAN BECOME A NETWORK",
+      "telegramCaption": "One Invitation Can Become a Network\n\nOpen Invite, copy your personal link, and grow together.\n\n#AIONEX #AION",
+      "youtubeTitle": "One Invitation Can Become a Network | AIONEX",
+      "youtubeDescription": "Community growth should reward real people, not repeated devices. Referral systems lose trust when duplicate accounts can claim the same reward. AIONEX gives every creator a unique link and records verified joins with cross-account abuse protection. The network view tracks invited users, milestone progress, and community rewards. Share your signal with one trusted friend and grow the AIONEX network safely.\n\nOpen Invite, copy your personal link, and grow together.\n\nEducational content. No investment advice.",
+      "xCaption": "Community growth should reward real people, not repeated devices. Open Invite, copy your personal link, and grow together.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "referrals"
+      ],
+      "callToAction": "Open Invite, copy your personal link, and grow together.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "network_map",
+          "narration": "Community growth should reward real people, not repeated devices.",
+          "onScreenText": "Community growth should reward real people, not repeated devices.",
+          "subtitleText": "Community growth should reward real people, not repeated devices.",
+          "visualInstructions": [
+            "Use network_map with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "network_map",
+          "narration": "Referral systems lose trust when duplicate accounts can claim the same reward.",
+          "onScreenText": "Referral systems lose trust when duplicate accounts can claim the same reward",
+          "subtitleText": "Referral systems lose trust when duplicate accounts can claim the same reward.",
+          "visualInstructions": [
+            "Use network_map with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "network_map",
+          "narration": "AIONEX gives every creator a unique link and records verified joins with cross-account abuse protection.",
+          "onScreenText": "AIONEX gives every creator a unique link and records verified joins with cross-account abuse protection",
+          "subtitleText": "AIONEX gives every creator a unique link and records verified joins with cross-account abuse protection.",
+          "visualInstructions": [
+            "Use network_map with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "network_map",
+          "narration": "The network view tracks invited users, milestone progress, and community rewards.",
+          "onScreenText": "The network view tracks invited users, milestone progress, and community rewards",
+          "subtitleText": "The network view tracks invited users, milestone progress, and community rewards.",
+          "visualInstructions": [
+            "Use network_map with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "network_map",
+          "narration": "Share your signal with one trusted friend and grow the AIONEX network safely.",
+          "onScreenText": "Share your signal with one trusted friend and grow the AIONEX network safely",
+          "subtitleText": "Share your signal with one trusted friend and grow the AIONEX network safely.",
+          "visualInstructions": [
+            "Use network_map with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 70,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 88.4,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 6.82
+    },
+    {
+      "scenarioKey": "week1-2026-07-15-7",
+      "categoryKey": "aion_ai",
+      "topic": "How AION AI helps users",
+      "title": "Ask the Same AION That You Evolve",
+      "hook": "Your AI companion should understand the ecosystem you are building in.",
+      "narration": "Your AI companion should understand the ecosystem you are building in. Generic assistants feel disconnected from your product journey. AION AI keeps a stable conversation, streams readable answers, and carries the same visual identity as your evolving character. Use it for AIONEX guidance, Web3 education, wallet safety, and clear explanations—not guaranteed returns or invented claims. Ask a useful question and turn the answer into your next informed action.",
+      "presenter": "animated_core",
+      "durationSeconds": 50,
+      "thumbnailText": "ASK THE SAME AION THAT YOU EVOLVE",
+      "telegramCaption": "Ask the Same AION That You Evolve\n\nOpen AION AI and start a conversation with your evolving intelligence.\n\n#AIONEX #AION",
+      "youtubeTitle": "Ask the Same AION That You Evolve | AIONEX",
+      "youtubeDescription": "Your AI companion should understand the ecosystem you are building in. Generic assistants feel disconnected from your product journey. AION AI keeps a stable conversation, streams readable answers, and carries the same visual identity as your evolving character. Use it for AIONEX guidance, Web3 education, wallet safety, and clear explanations—not guaranteed returns or invented claims. Ask a useful question and turn the answer into your next informed action.\n\nOpen AION AI and start a conversation with your evolving intelligence.\n\nEducational content. No investment advice.",
+      "xCaption": "Your AI companion should understand the ecosystem you are building in. Open AION AI and start a conversation with your evolving intelligence.",
+      "hashtags": [
+        "AIONEX",
+        "AION",
+        "aionai"
+      ],
+      "callToAction": "Open AION AI and start a conversation with your evolving intelligence.",
+      "factualSafetyNotes": [
+        "Claims are limited to implemented AIONEX functionality.",
+        "No earnings, price, partnership, or release-date claims."
+      ],
+      "sourceReferences": [
+        "AIONEX repository and production feature configuration"
+      ],
+      "scenes": [
+        {
+          "position": 1,
+          "purpose": "hook",
+          "startSeconds": 0,
+          "endSeconds": 4,
+          "backgroundTemplateKey": "neural_console",
+          "narration": "Your AI companion should understand the ecosystem you are building in.",
+          "onScreenText": "Your AI companion should understand the ecosystem you are building in.",
+          "subtitleText": "Your AI companion should understand the ecosystem you are building in.",
+          "visualInstructions": [
+            "Use neural_console with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Fast energy reveal in the first three seconds.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 2,
+          "purpose": "context",
+          "startSeconds": 4,
+          "endSeconds": 12,
+          "backgroundTemplateKey": "neural_console",
+          "narration": "Generic assistants feel disconnected from your product journey.",
+          "onScreenText": "Generic assistants feel disconnected from your product journey",
+          "subtitleText": "Generic assistants feel disconnected from your product journey.",
+          "visualInstructions": [
+            "Use neural_console with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 3,
+          "purpose": "solution",
+          "startSeconds": 12,
+          "endSeconds": 29,
+          "backgroundTemplateKey": "neural_console",
+          "narration": "AION AI keeps a stable conversation, streams readable answers, and carries the same visual identity as your evolving character.",
+          "onScreenText": "AION AI keeps a stable conversation, streams readable answers, and carries the same visual identity as your evolving character",
+          "subtitleText": "AION AI keeps a stable conversation, streams readable answers, and carries the same visual identity as your evolving character.",
+          "visualInstructions": [
+            "Use neural_console with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 4,
+          "purpose": "demonstration",
+          "startSeconds": 29,
+          "endSeconds": 42,
+          "backgroundTemplateKey": "neural_console",
+          "narration": "Use it for AIONEX guidance, Web3 education, wallet safety, and clear explanations—not guaranteed returns or invented claims.",
+          "onScreenText": "Use it for AIONEX guidance, Web3 education, wallet safety, and clear explanations—not guaranteed returns or invented claims",
+          "subtitleText": "Use it for AIONEX guidance, Web3 education, wallet safety, and clear explanations—not guaranteed returns or invented claims.",
+          "visualInstructions": [
+            "Use neural_console with purposeful AIONEX motion.",
+            "Show a legible product-feature demonstration."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        },
+        {
+          "position": 5,
+          "purpose": "call_to_action",
+          "startSeconds": 42,
+          "endSeconds": 50,
+          "backgroundTemplateKey": "neural_console",
+          "narration": "Ask a useful question and turn the answer into your next informed action.",
+          "onScreenText": "Ask a useful question and turn the answer into your next informed action",
+          "subtitleText": "Ask a useful question and turn the answer into your next informed action.",
+          "visualInstructions": [
+            "Use neural_console with purposeful AIONEX motion.",
+            "Keep AION or the AIONEX identity visible."
+          ],
+          "motionInstructions": [
+            "Use transform, opacity, depth, and parallax transitions.",
+            "Never leave a static black frame."
+          ],
+          "assetReferences": []
+        }
+      ],
+      "quality": {
+        "dimensions": {
+          "relevance": 96,
+          "originality": 94,
+          "clarity": 70,
+          "educationalValue": 90,
+          "audienceValue": 90,
+          "visualPotential": 96,
+          "brandConsistency": 95,
+          "factualSafety": 96,
+          "hookStrength": 92,
+          "callToAction": 90
+        },
+        "totalScore": 90.9,
+        "repetitionRisk": 0,
+        "approved": true,
+        "rejectionReasons": []
+      },
+      "repetitionAgainstEarlier": 15.51
+    }
+  ]
+}

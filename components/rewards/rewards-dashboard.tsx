@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable react-hooks/static-components, react-hooks/purity, react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/purity, react-hooks/set-state-in-effect */
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -32,6 +32,12 @@ import { QRCodeCanvas } from "qrcode.react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useAccount, useSignMessage } from "wagmi";
 import { WalletControls } from "@/app/components/wallet-controls";
+import { AionMining } from "@/components/aion/aion-mining";
+import { AionOnboarding } from "@/components/aion/aion-onboarding";
+import { AionProvider } from "@/components/aion/aion-provider";
+import { AionHomeExperience } from "@/components/aion/aion-home-experience";
+import { AionAiPresence, AionEvolutionPreview } from "@/components/aion/aion-presence";
+import { Markdown } from "@/components/assistant/markdown";
 import type { RewardProfile, RewardTask } from "@/lib/rewards/types";
 
 type Leader = {
@@ -72,7 +78,7 @@ type ReferralLeader = {
   referrals: number;
   rank: number;
 };
-type NavId = "home" | "mine" | "tasks" | "invite" | "wallet" | "profile";
+type NavId = "home" | "mine" | "tasks" | "ai" | "invite" | "wallet" | "profile";
 type Overlay = "ai" | "rewards" | "leaderboard" | null;
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -80,8 +86,8 @@ const nav = [
   { id: "home", label: "Home", icon: Home },
   { id: "mine", label: "Mine", icon: Pickaxe },
   { id: "tasks", label: "Tasks", icon: Gift },
+  { id: "ai", label: "AION AI", icon: Bot },
   { id: "invite", label: "Invite", icon: Users },
-  { id: "wallet", label: "Wallet", icon: WalletCards },
   { id: "profile", label: "Profile", icon: CircleUserRound },
 ] as const;
 const taskFilters = [
@@ -335,8 +341,7 @@ export function RewardsDashboard({
   initialTasks: RewardTask[];
   initialLeaders: Leader[];
 }) {
-  const [splash, setSplash] = useState(true),
-    [entered, setEntered] = useState(false),
+  const [splash, setSplash] = useState(false),
     [theme, setTheme] = useState<"dark" | "light">("dark"),
     [active, setActive] = useState<NavId>("home"),
     [overlay, setOverlay] = useState<Overlay>(null);
@@ -363,16 +368,18 @@ export function RewardsDashboard({
       {
         role: "assistant",
         content:
-          "Welcome to AIONEX Intelligence. Ask me about crypto markets, your portfolio, or on-chain strategy.",
+          "I am AION, your evolving intelligence companion. Ask me about AIONEX, missions, rewards, wallets, AI, or crypto education.",
       },
     ]),
     [draft, setDraft] = useState(""),
     [aiBusy, setAiBusy] = useState(false),
+    [conversationId, setConversationId] = useState<string | null>(null),
     [leaderScope, setLeaderScope] = useState("Global"),
     [leaderPeriod, setLeaderPeriod] = useState("All time");
   const account = useAccount(),
     { signMessageAsync } = useSignMessage();
   const chatEnd = useRef<HTMLDivElement>(null);
+  const telegramAuthAttempted = useRef(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -395,7 +402,6 @@ export function RewardsDashboard({
     setLoading(false);
   }, []);
   useEffect(() => {
-    if (localStorage.getItem("aionex-onboarded")) setEntered(true);
     const saved = localStorage.getItem("aionex-ai-history");
     if (saved)
       try {
@@ -420,20 +426,19 @@ export function RewardsDashboard({
     webApp?.expand?.();
     webApp?.setHeaderColor?.("#02050d");
     webApp?.setBackgroundColor?.("#02050d");
-    if (
-      !initialProfile &&
-      webApp?.initData &&
-      !sessionStorage.getItem("aionex-auth")
-    ) {
-      sessionStorage.setItem("aionex-auth", "1");
+    if (!initialProfile && webApp?.initData && !telegramAuthAttempted.current) {
+      telegramAuthAttempted.current = true;
       void fetch("/api/rewards/auth/telegram", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ initData: webApp.initData }),
-      }).then((r) => {
-        if (r.ok) location.reload();
-        else sessionStorage.removeItem("aionex-auth");
-      });
+      }).then(async (response) => {
+        if (response.ok) await refresh();
+        else {
+          const body = await response.json().catch(() => ({})) as { error?: string };
+          setMessage(body.error || "Telegram authentication failed. Reopen the Mini App and try again.");
+        }
+      }).catch(() => setMessage("Telegram authentication is temporarily unavailable."));
     }
     void fetch("/api/market-news")
       .then((r) => r.json())
@@ -447,6 +452,18 @@ export function RewardsDashboard({
         JSON.stringify(chat.slice(-30)),
       );
   }, [chat]);
+  const authenticatedProfileId = profile?.id;
+  useEffect(() => {
+    if (!authenticatedProfileId) return;
+    void fetch("/api/aion/conversations", { cache: "no-store" }).then(async response => {
+      if (!response.ok) return;
+      const body = await response.json() as { conversation?: { id: string; messages: ChatMessage[] } | null };
+      if (body.conversation?.messages.length) {
+        setConversationId(body.conversation.id);
+        setChat(body.conversation.messages.map(({ role, content }) => ({ role, content })));
+      }
+    }).catch(() => undefined);
+  }, [authenticatedProfileId]);
   useEffect(
     () => chatEnd.current?.scrollIntoView({ behavior: "auto", block: "end" }),
     [chat],
@@ -559,9 +576,11 @@ export function RewardsDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map(({ role, content }) => ({ role, content })),
+          conversationId,
         }),
       });
       if (!response.ok) throw new Error("AI is reconnecting");
+      setConversationId(response.headers.get("X-AION-Conversation-ID") || conversationId);
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let answer = "";
@@ -589,7 +608,6 @@ export function RewardsDashboard({
     (window as typeof window&{Telegram?:{WebApp?:{HapticFeedback?:{selectionChanged?:()=>void}}}}).Telegram?.WebApp?.HapticFeedback?.selectionChanged?.();
     setOverlay(null);
     setActive(id);
-    window.scrollTo(0,0);
   }
 
   const filteredTasks = tasks.filter((task) => {
@@ -603,7 +621,7 @@ export function RewardsDashboard({
   });
   const completed = tasks.filter((t) => t.completed).length;
 
-  const HomeScreen = () => (
+  const LegacyHomeScreen = () => (
     <motion.div {...pageMotion} className="space-y-5">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -626,6 +644,7 @@ export function RewardsDashboard({
           <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full border-2 border-[#050814] bg-emerald-400" />
         </button>
       </header>
+      <AionHomeExperience profile={profile} tasks={tasks} busy={busy} onMine={() => go("mine")} onTasks={() => go("tasks")} onProfile={() => go("profile")} onCheckIn={() => void action("/api/rewards/check-in", "checkin")} />
       <motion.section
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -921,7 +940,7 @@ export function RewardsDashboard({
     </motion.div>
   );
 
-  const MineScreen = () => (
+  const LegacyMineScreen = () => (
     <motion.div
       {...pageMotion}
       className="flex min-h-[calc(100dvh-120px)] flex-col"
@@ -981,8 +1000,8 @@ export function RewardsDashboard({
               className="absolute inset-8 rounded-full bg-cyan-400/10 blur-xl"
             />
             <motion.button
-              disabled={!profile || nextMine || busy === "mine"}
-              onClick={() => void action("/api/rewards/mine", "mine")}
+              disabled={!profile}
+              onClick={() => window.location.assign("/mining")}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.91 }}
               className="relative grid h-40 w-40 place-items-center rounded-full border border-cyan-200/30 bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-600 p-[2px] shadow-[0_0_60px_rgba(34,211,238,.28)] disabled:saturate-50"
@@ -991,27 +1010,23 @@ export function RewardsDashboard({
                 <span>
                   <Pickaxe className="mx-auto text-cyan-200" size={38} />
                   <span className="mt-2 block text-sm font-black uppercase tracking-[.18em]">
-                    {busy === "mine"
-                      ? "Mining"
-                      : nextMine
-                        ? "Cooling"
-                        : "Claim"}
+                    {nextMine ? "View" : "Start"}
                   </span>
                   <span className="mt-1 block text-[9px] text-violet-300">
-                    +100 AXP · +25 XP
+                    Server-validated session
                   </span>
                 </span>
               </span>
             </motion.button>
           </div>
           <p className="text-[10px] uppercase tracking-[.22em] text-slate-500">
-            Next mining window
+            Secure mining status
           </p>
           <p className="mt-2 font-mono text-3xl font-bold tracking-wider">
             {nextMine ? <Countdown until={mineUntil} onReady={markMineReady}/> : "READY"}
           </p>
           <p className="mt-3 text-xs text-slate-500">
-            Secure your daily AXP and advance your mining streak.
+            Open the live miner to start, stop, and follow rewards in real time.
           </p>
           <div className="mt-7 grid w-full grid-cols-3 gap-2">
             <div className="rounded-2xl bg-white/[.035] p-3">
@@ -1309,12 +1324,9 @@ export function RewardsDashboard({
       className="flex min-h-[calc(100dvh-120px)] flex-col"
     >
       <header className="mb-4 flex items-center gap-3">
-        <div className="relative grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-500 text-slate-950">
-          <Bot size={22} />
-          <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[#050814] bg-emerald-400" />
-        </div>
+        <AionAiPresence speaking={aiBusy} />
         <div>
-          <h1 className="text-sm font-semibold">AIONEX Intelligence</h1>
+          <h1 className="text-sm font-semibold">AION · Personal Intelligence</h1>
           <p className="text-[9px] text-emerald-300">
             Online · Crypto native AI
           </p>
@@ -1351,7 +1363,7 @@ export function RewardsDashboard({
               <div
                 className={`max-w-[86%] rounded-2xl px-3.5 py-3 text-xs leading-5 ${item.role === "user" ? "rounded-br-md bg-gradient-to-br from-blue-500 to-violet-600 text-white" : "rounded-bl-md border border-white/[.07] bg-white/[.045] text-slate-300"}`}
               >
-                {item.content || (
+                {item.content ? <Markdown content={item.content} /> : (
                   <span className="inline-flex gap-1">
                     <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300" />
                     <i className="h-1.5 w-1.5 animate-bounce rounded-full bg-cyan-300 [animation-delay:.15s]" />
@@ -1417,6 +1429,7 @@ export function RewardsDashboard({
           Global rank #{profile?.rank || "—"} · AIONEX Citizen
         </p>
       </div>
+      <AionEvolutionPreview />
       <Glass className="mt-6 p-4">
         <div className="flex justify-between text-[10px]">
           <span>Level progress</span>
@@ -1683,26 +1696,26 @@ export function RewardsDashboard({
   );
 
   const screens: Record<NavId, React.ReactNode> = {
-    home: <HomeScreen />,
-    mine: <MineScreen />,
-    tasks: <TasksScreen />,
-    invite: <InviteScreen />,
-    wallet: <WalletOverlay />,
-    profile: <ProfileScreen />,
+    home: <AionHomeExperience profile={profile} tasks={tasks} busy={busy} onMine={() => go("mine")} onTasks={() => go("tasks")} onProfile={() => go("profile")} onCheckIn={() => void action("/api/rewards/check-in", "checkin")} />,
+    mine: <AionMining onAuthoritativeUpdate={refresh} />,
+    tasks: TasksScreen(),
+    ai: AiScreen(),
+    invite: InviteScreen(),
+    wallet: WalletOverlay(),
+    profile: ProfileScreen(),
   };
+  void Welcome;
+  void LegacyHomeScreen;
+  void LegacyMineScreen;
   if (splash)
     return (
       <AnimatePresence>
         <Splash onDone={() => setSplash(false)} />
       </AnimatePresence>
     );
-  if (!entered)
-    return (
-      <div className="mini-app min-h-dvh">
-        <Welcome onOpen={() => setEntered(true)} />
-      </div>
-    );
   return (
+    <AionProvider authenticated={Boolean(profile)}>
+    <AionOnboarding />
     <main className={`mini-app ${theme === "light" ? "light" : ""} min-h-dvh overflow-x-hidden bg-[#03050c] text-white`}>
       <div className="mini-particles pointer-events-none fixed inset-0 opacity-50" />
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(14,165,233,.1),transparent_30%),radial-gradient(circle_at_100%_45%,rgba(124,58,237,.09),transparent_35%)]" />
@@ -1717,17 +1730,7 @@ export function RewardsDashboard({
             {message}
           </motion.button>
         )}
-        <AnimatePresence mode="wait">
-          {overlay === "ai" ? (
-            <AiScreen key="ai" />
-          ) : overlay === "rewards" ? (
-            <RewardsScreen key="rewards" />
-          ) : overlay === "leaderboard" ? (
-            <LeaderboardOverlay key="leaderboard" />
-          ) : (
-            <motion.div key={active}>{screens[active]}</motion.div>
-          )}
-        </AnimatePresence>
+        {overlay === "ai" ? AiScreen() : overlay === "rewards" ? RewardsScreen() : overlay === "leaderboard" ? LeaderboardOverlay() : Object.entries(screens).map(([id, screen]) => <div key={id} hidden={active !== id} aria-hidden={active !== id}>{screen}</div>)}
       </div>
       <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[480px] border-t border-white/[.08] bg-[#060a13]/90 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 shadow-[0_-20px_50px_rgba(0,0,0,.35)] backdrop-blur-2xl">
         <div className="grid grid-cols-6">
@@ -1752,5 +1755,6 @@ export function RewardsDashboard({
         </div>
       </nav>
     </main>
+    </AionProvider>
   );
 }

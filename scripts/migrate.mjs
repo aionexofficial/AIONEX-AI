@@ -35,7 +35,8 @@ const filenames = (await readdir(directory)).filter((name) => /^\d+_.+\.sql$/.te
 let applied = 0;
 
 for (const filename of filenames) {
-  const source = await readFile(join(directory, filename), "utf8");
+  // Migration checksums are platform-independent; Windows checkouts may use CRLF.
+  const source = (await readFile(join(directory, filename), "utf8")).replace(/\r\n/g, "\n");
   const checksum = createHash("sha256").update(source).digest("hex");
   const existing = await sql`SELECT checksum FROM schema_migrations WHERE filename=${filename}`;
   if (existing[0]) {

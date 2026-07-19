@@ -29,3 +29,5 @@ export function useAion() {
   if (!value) throw new Error("useAion must be used within AionProvider.");
   return value;
 }
+
+export function useOptionalAion(){return useContext(AionContext);}

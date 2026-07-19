@@ -172,5 +172,7 @@ export async function submitTapBatch(userId: string, input: TapBatchInput, reque
     if (raced[0]) return rowToTapResult(raced[0], true);
     throw new Error("Tap batch could not be processed.");
   }
-  return rowToTapResult(rows[0], false);
+  const result=rowToTapResult(rows[0], false);
+  if(result.rejectedTaps>0){const severity=result.acceptedTaps===0?25:10;await db()`INSERT INTO reward_anti_cheat_events(user_id,event_type,severity,fingerprint_hash,ip_hash,details) VALUES(${userId}::uuid,${result.acceptedTaps===0?'tap_batch_rejected':'tap_batch_partial'},${severity},${deviceHash},${ipHash},jsonb_build_object('requestedTaps',${result.requestedTaps},'acceptedTaps',${result.acceptedTaps},'rejectedTaps',${result.rejectedTaps},'sessionId',${input.sessionId}))`;await db()`UPDATE reward_users SET risk_score=LEAST(100,risk_score+${severity}),status=CASE WHEN risk_score+${severity}>=60 THEN 'review' ELSE status END WHERE id=${userId}::uuid`;}
+  return result;
 }

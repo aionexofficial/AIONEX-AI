@@ -3,8 +3,211 @@
 import Link from "next/link";
 import { useState } from "react";
 
-type Stage={key:string;name:string;min_level:number;max_level:number;description:string;enabled:boolean};
-type Dialogue={key:string;context:string;message:string;enabled:boolean;priority:number};
-type Risk={id:string;event_type:string;severity:number;display_name:string|null;created_at:string};
-type Transaction={id:string;transaction_type:string;axp_delta:number;xp_delta:number;energy_delta:number;display_name:string;created_at:string};
-export function AionManager({initial}:{initial:{stages:Stage[];dialogues:Dialogue[];risks:Risk[];transactions:Transaction[]}}){const[stages,setStages]=useState(initial.stages),[dialogues,setDialogues]=useState(initial.dialogues),[message,setMessage]=useState("");async function patch(body:Record<string,unknown>){const response=await fetch("/api/admin/aion",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const data=await response.json();if(!response.ok)throw new Error(data.error||"Update failed.");return data}async function editStage(stage:Stage){const name=prompt("Stage name",stage.name),minLevel=Number(prompt("Minimum level",String(stage.min_level))),maxLevel=Number(prompt("Maximum level",String(stage.max_level))),description=prompt("Description",stage.description);if(!name||!description)return;try{const data=await patch({type:"stage",key:stage.key,name,minLevel,maxLevel,description,enabled:stage.enabled});setStages(current=>current.map(item=>item.key===stage.key?data.stage:item));setMessage("Stage configuration saved and audited.")}catch(error){setMessage(error instanceof Error?error.message:"Update failed.")}}async function editDialogue(dialogue:Dialogue){const text=prompt("AION dialogue",dialogue.message);if(!text)return;try{const data=await patch({type:"dialogue",key:dialogue.key,message:text,enabled:dialogue.enabled,priority:dialogue.priority});setDialogues(current=>current.map(item=>item.key===dialogue.key?data.dialogue:item));setMessage("Dialogue saved and audited.")}catch(error){setMessage(error instanceof Error?error.message:"Update failed.")}}return <main className="min-h-screen bg-[#020711] p-5 text-white sm:p-8"><div className="mx-auto max-w-7xl"><Link href="/admin" className="text-xs text-cyan-300">← Admin dashboard</Link><p className="mt-8 text-[10px] uppercase tracking-[.22em] text-cyan-300">PROJECT AION CONTROL PLANE</p><h1 className="mt-2 text-4xl font-semibold">Character & economy operations</h1>{message&&<p className="mt-4 rounded-xl border border-cyan-300/20 p-3 text-xs text-cyan-100">{message}</p>}<section className="mt-8"><h2 className="text-xl">Evolution stages</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{stages.map(stage=><button onClick={()=>editStage(stage)} key={stage.key} className="rounded-2xl border border-white/10 bg-[#081321] p-5 text-left"><div className="flex justify-between"><span className="font-semibold">{stage.name}</span><span className="text-xs text-cyan-300">LVL {stage.min_level}–{stage.max_level}</span></div><p className="mt-2 text-xs text-slate-500">{stage.description}</p></button>)}</div></section><section className="mt-8"><h2 className="text-xl">Contextual dialogue</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{dialogues.map(dialogue=><button onClick={()=>editDialogue(dialogue)} key={dialogue.key} className="rounded-2xl border border-white/10 bg-[#081321] p-4 text-left"><p className="text-[9px] uppercase text-violet-300">{dialogue.context}</p><p className="mt-2 text-sm">{dialogue.message}</p></button>)}</div></section><div className="mt-8 grid gap-5 lg:grid-cols-2"><section className="rounded-2xl border border-white/10 bg-[#081321] p-5"><h2>Suspicious tapping</h2><div className="mt-3 space-y-2">{initial.risks.slice(0,20).map(risk=><div key={risk.id} className="border-t border-white/5 pt-2 text-xs"><span className="text-rose-300">Severity {risk.severity}</span> · {risk.event_type} · {risk.display_name||"Unknown user"}</div>)}{!initial.risks.length&&<p className="text-xs text-slate-500">No AION tap risk events.</p>}</div></section><section className="rounded-2xl border border-white/10 bg-[#081321] p-5"><h2>Economy audit</h2><div className="mt-3 space-y-2">{initial.transactions.slice(0,20).map(tx=><div key={tx.id} className="border-t border-white/5 pt-2 text-xs"><span className="text-cyan-300">{tx.transaction_type}</span> · {tx.display_name} · {tx.axp_delta>=0?"+":""}{tx.axp_delta} AXP / {tx.energy_delta} energy</div>)}{!initial.transactions.length&&<p className="text-xs text-slate-500">No AION economy transactions yet.</p>}</div></section></div></div></main>}
+type Stage = {
+  key: string;
+  name: string;
+  min_level: number;
+  max_level: number;
+  description: string;
+  visual_config: unknown;
+  enabled: boolean;
+};
+type Dialogue = {
+  key: string;
+  context: string;
+  message: string;
+  enabled: boolean;
+  priority: number;
+};
+type Risk = {
+  id: string;
+  event_type: string;
+  severity: number;
+  display_name: string | null;
+  created_at: string;
+};
+type Transaction = {
+  id: string;
+  transaction_type: string;
+  axp_delta: number;
+  xp_delta: number;
+  energy_delta: number;
+  display_name: string;
+  created_at: string;
+};
+export function AionManager({
+  initial,
+}: {
+  initial: {
+    stages: Stage[];
+    dialogues: Dialogue[];
+    risks: Risk[];
+    transactions: Transaction[];
+  };
+}) {
+  const [stages, setStages] = useState(initial.stages),
+    [dialogues, setDialogues] = useState(initial.dialogues),
+    [message, setMessage] = useState("");
+  async function patch(body: Record<string, unknown>) {
+    const response = await fetch("/api/admin/aion", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Update failed.");
+    return data;
+  }
+  async function editStage(stage: Stage) {
+    const name = prompt("Stage name", stage.name),
+      minLevel = Number(prompt("Minimum level", String(stage.min_level))),
+      maxLevel = Number(prompt("Maximum level", String(stage.max_level))),
+      description = prompt("Description", stage.description),
+      visual = prompt(
+        "Visual configuration JSON",
+        JSON.stringify(stage.visual_config),
+      );
+    if (!name || !description || !visual) return;
+    try {
+      const data = await patch({
+        type: "stage",
+        key: stage.key,
+        name,
+        minLevel,
+        maxLevel,
+        description,
+        visualConfig: JSON.parse(visual),
+        enabled: stage.enabled,
+      });
+      setStages((current) =>
+        current.map((item) => (item.key === stage.key ? data.stage : item)),
+      );
+      setMessage("Stage configuration saved and audited.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed.");
+    }
+  }
+  async function editDialogue(dialogue: Dialogue) {
+    const text = prompt("AION dialogue", dialogue.message);
+    if (!text) return;
+    try {
+      const data = await patch({
+        type: "dialogue",
+        key: dialogue.key,
+        message: text,
+        enabled: dialogue.enabled,
+        priority: dialogue.priority,
+      });
+      setDialogues((current) =>
+        current.map((item) =>
+          item.key === dialogue.key ? data.dialogue : item,
+        ),
+      );
+      setMessage("Dialogue saved and audited.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Update failed.");
+    }
+  }
+  return (
+    <main className="min-h-screen bg-[#020711] p-5 text-white sm:p-8">
+      <div className="mx-auto max-w-7xl">
+        <Link href="/admin" className="text-xs text-cyan-300">
+          &larr; Admin dashboard
+        </Link>
+        <p className="mt-8 text-[10px] uppercase tracking-[.22em] text-cyan-300">
+          PROJECT AION CONTROL PLANE
+        </p>
+        <h1 className="mt-2 text-4xl font-semibold">
+          Character & economy operations
+        </h1>
+        {message && (
+          <p className="mt-4 rounded-xl border border-cyan-300/20 p-3 text-xs text-cyan-100">
+            {message}
+          </p>
+        )}
+        <section className="mt-8">
+          <h2 className="text-xl">Evolution stages</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {stages.map((stage) => (
+              <button
+                onClick={() => editStage(stage)}
+                key={stage.key}
+                className="rounded-2xl border border-white/10 bg-[#081321] p-5 text-left"
+              >
+                <div className="flex justify-between">
+                  <span className="font-semibold">{stage.name}</span>
+                  <span className="text-xs text-cyan-300">
+                    LVL {stage.min_level}&ndash;{stage.max_level}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  {stage.description}
+                </p>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="mt-8">
+          <h2 className="text-xl">Contextual dialogue</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {dialogues.map((dialogue) => (
+              <button
+                onClick={() => editDialogue(dialogue)}
+                key={dialogue.key}
+                className="rounded-2xl border border-white/10 bg-[#081321] p-4 text-left"
+              >
+                <p className="text-[9px] uppercase text-violet-300">
+                  {dialogue.context}
+                </p>
+                <p className="mt-2 text-sm">{dialogue.message}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+        <div className="mt-8 grid gap-5 lg:grid-cols-2">
+          <section className="rounded-2xl border border-white/10 bg-[#081321] p-5">
+            <h2>Suspicious tapping</h2>
+            <div className="mt-3 space-y-2">
+              {initial.risks.slice(0, 20).map((risk) => (
+                <div
+                  key={risk.id}
+                  className="border-t border-white/5 pt-2 text-xs"
+                >
+                  <span className="text-rose-300">
+                    Severity {risk.severity}
+                  </span>{" "}
+                  &middot; {risk.event_type} &middot; {risk.display_name || "Unknown user"}
+                </div>
+              ))}
+              {!initial.risks.length && (
+                <p className="text-xs text-slate-500">
+                  No AION tap risk events.
+                </p>
+              )}
+            </div>
+          </section>
+          <section className="rounded-2xl border border-white/10 bg-[#081321] p-5">
+            <h2>Economy audit</h2>
+            <div className="mt-3 space-y-2">
+              {initial.transactions.slice(0, 20).map((tx) => (
+                <div
+                  key={tx.id}
+                  className="border-t border-white/5 pt-2 text-xs"
+                >
+                  <span className="text-cyan-300">{tx.transaction_type}</span>{" "}
+                  &middot; {tx.display_name} &middot; {tx.axp_delta >= 0 ? "+" : ""}
+                  {tx.axp_delta} AXP / {tx.energy_delta} energy
+                </div>
+              ))}
+              {!initial.transactions.length && (
+                <p className="text-xs text-slate-500">
+                  No AION economy transactions yet.
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}

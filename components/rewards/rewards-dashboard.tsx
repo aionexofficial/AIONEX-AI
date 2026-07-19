@@ -426,7 +426,7 @@ export function RewardsDashboard({
     webApp?.expand?.();
     webApp?.setHeaderColor?.("#02050d");
     webApp?.setBackgroundColor?.("#02050d");
-    if (!initialProfile && webApp?.initData && !telegramAuthAttempted.current) {
+    if (webApp?.initData && !telegramAuthAttempted.current) {
       telegramAuthAttempted.current = true;
       void fetch("/api/rewards/auth/telegram", {
         method: "POST",

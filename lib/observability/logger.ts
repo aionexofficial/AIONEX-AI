@@ -14,3 +14,5 @@ function safeMessage(error: unknown) {
 export function logError(scope: string, error: unknown, context: Context = {}) {
   console.error(JSON.stringify({ level: "error", scope, message: safeMessage(error), ...context, timestamp: new Date().toISOString() }));
 }
+
+export function logInfo(scope:string,context:Context={}){console.info(JSON.stringify({level:"info",scope,...context,timestamp:new Date().toISOString()}));}
